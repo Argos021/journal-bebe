@@ -113,7 +113,6 @@ export default function BabyTracker() {
   const [profile, setProfile] = useState({nom:"",dateNaissance:"",heureNaissance:"",sexe:"",poidsNaissance:"",tailleNaissance:"",perimCranien:"",typeAlimentation:""});
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const initializedRef = useRef(false);
 
   const [tab, setTab] = useState("journal"); // journal | croissance | options
   const [showForm, setShowForm] = useState(false);
@@ -149,56 +148,34 @@ export default function BabyTracker() {
   // Firebase real-time listeners
   useEffect(() => {
     const unsubs = [];
-    let profileLoaded = false, settingsLoaded = false;
-
-    const checkInitialized = () => {
-      if (profileLoaded && settingsLoaded) {
-        initializedRef.current = true;
-      }
-    };
-
-    // Feedings
     unsubs.push(onSnapshot(collection(db, "feedings"), snap => {
-      const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
-      setFeedings(data);
+      setFeedings(snap.docs.map(d => ({id: d.id, ...d.data()})));
       setLoading(false);
     }));
-    // Growth
     unsubs.push(onSnapshot(collection(db, "growth"), snap => {
       setGrowth(snap.docs.map(d => ({id: d.id, ...d.data()})));
     }));
-    // Appointments
     unsubs.push(onSnapshot(collection(db, "appointments"), snap => {
       setAppointments(snap.docs.map(d => ({id: d.id, ...d.data()})));
     }));
-    // Settings (single doc)
     unsubs.push(onSnapshot(doc(db, "config", "settings"), snap => {
       if (snap.exists()) setSettings(snap.data());
-      settingsLoaded = true;
-      checkInitialized();
     }));
-    // Profile (single doc)
     unsubs.push(onSnapshot(doc(db, "config", "profile"), snap => {
       if (snap.exists()) setProfile(snap.data());
-      profileLoaded = true;
-      checkInitialized();
     }));
-    // Mark initialized even if docs don't exist yet
-    setTimeout(() => { initializedRef.current = true; }, 3000);
     return () => unsubs.forEach(u => u());
   }, []);
 
-  // Save settings to Firebase — only after initial load
-  useEffect(() => {
-    if (!initializedRef.current) return;
-    setDoc(doc(db, "config", "settings"), settings).catch(()=>{});
-  }, [settings]);
-
-  // Save profile to Firebase — only after initial load
-  useEffect(() => {
-    if (!initializedRef.current) return;
-    setDoc(doc(db, "config", "profile"), profile).catch(()=>{});
-  }, [profile]);
+  // Helper functions to save profile and settings manually
+  function saveProfile(newProfile) {
+    setProfile(newProfile);
+    setDoc(doc(db, "config", "profile"), newProfile).catch(()=>{});
+  }
+  function saveSettings(newSettings) {
+    setSettings(newSettings);
+    setDoc(doc(db, "config", "settings"), newSettings).catch(()=>{});
+  }
 
   // Timer logic
   useEffect(() => {
@@ -505,13 +482,13 @@ export default function BabyTracker() {
 
           <SectionCard dark={dark} cardBg={cardBg}>
             <Label dark={dark}>👶 Prénom</Label>
-            <input value={profile.nom} onChange={e=>setProfile(p=>({...p,nom:e.target.value}))} placeholder="Prénom de bébé" style={dynInputStyle}/>
+            <input value={profile.nom} onChange={e=>saveProfile({...profile,nom:e.target.value})} placeholder="Prénom de bébé" style={dynInputStyle}/>
 
             <Label dark={dark}>🎂 Date de naissance</Label>
-            <input type="date" value={profile.dateNaissance} max={todayStr()} onChange={e=>setProfile(p=>({...p,dateNaissance:e.target.value}))} style={dynInputStyle}/>
+            <input type="date" value={profile.dateNaissance} max={todayStr()} onChange={e=>saveProfile({...profile,dateNaissance:e.target.value})} style={dynInputStyle}/>
 
             <Label dark={dark}>🕐 Heure de naissance</Label>
-            <input type="time" value={profile.heureNaissance||""} onChange={e=>setProfile(p=>({...p,heureNaissance:e.target.value}))} style={{...dynInputStyle,marginBottom:8}}/>
+            <input type="time" value={profile.heureNaissance||""} onChange={e=>saveProfile({...profile,heureNaissance:e.target.value})} style={{...dynInputStyle,marginBottom:8}}/>
 
             {profile.dateNaissance && (() => {
               const timeStr = profile.heureNaissance || "00:00";
@@ -543,7 +520,7 @@ export default function BabyTracker() {
             <Label dark={dark}>⚥ Sexe</Label>
             <div style={{display:"flex",gap:10,marginBottom:14}}>
               {[["fille","👧 Fille"],["garcon","👦 Garçon"],["autre","🌸 Autre"]].map(([val,label])=>(
-                <button key={val} onClick={()=>setProfile(p=>({...p,sexe:val}))} style={{flex:1,padding:"10px 0",borderRadius:10,border:"2px solid",borderColor:profile.sexe===val?"#e06b8a":"#ddd",background:profile.sexe===val?(dark?"rgba(224,107,138,0.2)":"#fce4ec"):(dark?"#1e1e30":"#fafafa"),color:profile.sexe===val?"#c2185b":(dark?"#555":"#aaa"),fontWeight:"bold",fontSize:13,cursor:"pointer"}}>
+                <button key={val} onClick={()=>saveProfile({...profile,sexe:val})} style={{flex:1,padding:"10px 0",borderRadius:10,border:"2px solid",borderColor:profile.sexe===val?"#e06b8a":"#ddd",background:profile.sexe===val?(dark?"rgba(224,107,138,0.2)":"#fce4ec"):(dark?"#1e1e30":"#fafafa"),color:profile.sexe===val?"#c2185b":(dark?"#555":"#aaa"),fontWeight:"bold",fontSize:13,cursor:"pointer"}}>
                   {label}
                 </button>
               ))}
@@ -552,7 +529,7 @@ export default function BabyTracker() {
             <Label dark={dark}>🍼 Type d'alimentation</Label>
             <div style={{display:"flex",gap:10,marginBottom:14}}>
               {[["maternelle","🤱 Maternelle"],["commerciale","🥛 Commerciale"],["mixte","🔀 Mixte"]].map(([val,label])=>(
-                <button key={val} onClick={()=>setProfile(p=>({...p,typeAlimentation:val}))} style={{flex:1,padding:"9px 0",borderRadius:10,border:"2px solid",borderColor:profile.typeAlimentation===val?"#e8906a":"#ddd",background:profile.typeAlimentation===val?(dark?"rgba(232,144,106,0.2)":"#fff0e8"):(dark?"#1e1e30":"#fafafa"),color:profile.typeAlimentation===val?"#b05a30":(dark?"#555":"#aaa"),fontWeight:"bold",fontSize:12,cursor:"pointer"}}>
+                <button key={val} onClick={()=>saveProfile({...profile,typeAlimentation:val})} style={{flex:1,padding:"9px 0",borderRadius:10,border:"2px solid",borderColor:profile.typeAlimentation===val?"#e8906a":"#ddd",background:profile.typeAlimentation===val?(dark?"rgba(232,144,106,0.2)":"#fff0e8"):(dark?"#1e1e30":"#fafafa"),color:profile.typeAlimentation===val?"#b05a30":(dark?"#555":"#aaa"),fontWeight:"bold",fontSize:12,cursor:"pointer"}}>
                   {label}
                 </button>
               ))}
@@ -563,13 +540,13 @@ export default function BabyTracker() {
             <div style={{fontSize:13,fontWeight:"bold",color:textPrimary,marginBottom:12}}>📏 Mesures à la naissance</div>
 
             <Label dark={dark}>⚖️ Poids de naissance (grammes)</Label>
-            <input type="number" min="0" placeholder="ex: 3400" value={profile.poidsNaissance} onChange={e=>setProfile(p=>({...p,poidsNaissance:e.target.value}))} style={dynInputStyle}/>
+            <input type="number" min="0" placeholder="ex: 3400" value={profile.poidsNaissance} onChange={e=>saveProfile({...profile,poidsNaissance:e.target.value})} style={dynInputStyle}/>
 
             <Label dark={dark}>📏 Taille à la naissance (cm)</Label>
-            <input type="number" min="0" step="0.1" placeholder="ex: 50.0" value={profile.tailleNaissance} onChange={e=>setProfile(p=>({...p,tailleNaissance:e.target.value}))} style={dynInputStyle}/>
+            <input type="number" min="0" step="0.1" placeholder="ex: 50.0" value={profile.tailleNaissance} onChange={e=>saveProfile({...profile,tailleNaissance:e.target.value})} style={dynInputStyle}/>
 
             <Label dark={dark}>🔵 Périmètre crânien à la naissance (cm)</Label>
-            <input type="number" min="0" step="0.1" placeholder="ex: 34.5" value={profile.perimCranien} onChange={e=>setProfile(p=>({...p,perimCranien:e.target.value}))} style={dynInputStyle}/>
+            <input type="number" min="0" step="0.1" placeholder="ex: 34.5" value={profile.perimCranien} onChange={e=>saveProfile({...profile,perimCranien:e.target.value})} style={dynInputStyle}/>
 
             {/* Show birth data in growth context */}
             {(profile.poidsNaissance || profile.tailleNaissance) && (
@@ -748,7 +725,7 @@ export default function BabyTracker() {
                 <div style={{fontSize:13,fontWeight:"bold",color:textPrimary}}>🌙 Mode nuit</div>
                 <div style={{fontSize:12,color:textSecondary}}>Écran sombre pour les boires nocturnes</div>
               </div>
-              <div onClick={()=>setSettings(s=>({...s,darkMode:!s.darkMode}))} style={{width:50,height:28,borderRadius:14,background: dark?"#e06b8a":"#ddd",position:"relative",cursor:"pointer",transition:"background 0.2s"}}>
+              <div onClick={()=>saveSettings({...settings,darkMode:!settings.darkMode})} style={{width:50,height:28,borderRadius:14,background: dark?"#e06b8a":"#ddd",position:"relative",cursor:"pointer",transition:"background 0.2s"}}>
                 <div style={{position:"absolute",top:3,left: dark?24:4,width:22,height:22,borderRadius:"50%",background:"white",boxShadow:"0 1px 4px rgba(0,0,0,0.3)",transition:"left 0.2s"}}/>
               </div>
             </div>
