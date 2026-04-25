@@ -113,6 +113,7 @@ export default function BabyTracker() {
   const [profile, setProfile] = useState({nom:"",dateNaissance:"",heureNaissance:"",sexe:"",poidsNaissance:"",tailleNaissance:"",perimCranien:"",typeAlimentation:""});
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const initializedRef = useRef(false);
 
   const [tab, setTab] = useState("journal"); // journal | croissance | options
   const [showForm, setShowForm] = useState(false);
@@ -148,6 +149,14 @@ export default function BabyTracker() {
   // Firebase real-time listeners
   useEffect(() => {
     const unsubs = [];
+    let profileLoaded = false, settingsLoaded = false;
+
+    const checkInitialized = () => {
+      if (profileLoaded && settingsLoaded) {
+        initializedRef.current = true;
+      }
+    };
+
     // Feedings
     unsubs.push(onSnapshot(collection(db, "feedings"), snap => {
       const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
@@ -165,21 +174,29 @@ export default function BabyTracker() {
     // Settings (single doc)
     unsubs.push(onSnapshot(doc(db, "config", "settings"), snap => {
       if (snap.exists()) setSettings(snap.data());
+      settingsLoaded = true;
+      checkInitialized();
     }));
     // Profile (single doc)
     unsubs.push(onSnapshot(doc(db, "config", "profile"), snap => {
       if (snap.exists()) setProfile(snap.data());
+      profileLoaded = true;
+      checkInitialized();
     }));
+    // Mark initialized even if docs don't exist yet
+    setTimeout(() => { initializedRef.current = true; }, 3000);
     return () => unsubs.forEach(u => u());
   }, []);
 
-  // Save settings to Firebase when changed
+  // Save settings to Firebase — only after initial load
   useEffect(() => {
+    if (!initializedRef.current) return;
     setDoc(doc(db, "config", "settings"), settings).catch(()=>{});
   }, [settings]);
 
-  // Save profile to Firebase when changed
+  // Save profile to Firebase — only after initial load
   useEffect(() => {
+    if (!initializedRef.current) return;
     setDoc(doc(db, "config", "profile"), profile).catch(()=>{});
   }, [profile]);
 
