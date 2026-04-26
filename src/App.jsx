@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { db } from "./firebase.js";
 import { doc, collection, onSnapshot, setDoc, deleteDoc, getDoc } from "firebase/firestore";
 
@@ -1527,34 +1528,26 @@ function SanteTab({ appointments, setAppointments, dark, cardBg, textPrimary, te
         </div>
       )}
 
-      {/* ── Floating Action Buttons (Journal only) ── */}
-      {tab==="journal" && (
-        <div style={{position:"fixed",bottom:24,right:16,display:"flex",flexDirection:"column",gap:12,zIndex:50,alignItems:"flex-end"}}>
-          {/* Couche */}
+      {/* ── Floating Action Buttons via Portal (Journal only) ── */}
+      {tab==="journal" && createPortal(
+        <div style={{position:"fixed",bottom:24,right:16,display:"flex",flexDirection:"column",gap:12,zIndex:90,alignItems:"flex-end"}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <span style={{background:dark?"rgba(0,0,0,0.65)":"rgba(255,255,255,0.92)",color:dark?"#90caf9":"#1565c0",fontSize:12,fontWeight:"bold",padding:"4px 10px",borderRadius:20,boxShadow:"0 2px 8px rgba(0,0,0,0.12)"}}>
-              Couche
-            </span>
-            <button
-              onClick={()=>{setCoucheForm({date:todayStr(),time:getNow(),pipi:false,caca:false,note:""});setShowCoucheForm(true);}}
-              style={{width:50,height:50,borderRadius:"50%",border:"none",background:"linear-gradient(135deg,#64b5f6,#1565c0)",color:"white",fontSize:22,cursor:"pointer",boxShadow:"0 4px 16px rgba(21,101,192,0.4)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <span style={{background:dark?"rgba(0,0,0,0.75)":"rgba(255,255,255,0.95)",color:dark?"#90caf9":"#1565c0",fontSize:12,fontWeight:"bold",padding:"4px 10px",borderRadius:20,boxShadow:"0 2px 8px rgba(0,0,0,0.15)"}}>Couche</span>
+            <button onClick={()=>{setCoucheForm({date:todayStr(),time:getNow(),pipi:false,caca:false,note:""});setShowCoucheForm(true);}}
+              style={{width:50,height:50,borderRadius:"50%",border:"none",background:"linear-gradient(135deg,#64b5f6,#1565c0)",color:"white",fontSize:22,cursor:"pointer",boxShadow:"0 4px 16px rgba(21,101,192,0.5)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
               🧷
             </button>
           </div>
-          {/* Boire */}
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <span style={{background:dark?"rgba(0,0,0,0.65)":"rgba(255,255,255,0.92)",color:dark?"#f48fb1":"#c2185b",fontSize:12,fontWeight:"bold",padding:"4px 10px",borderRadius:20,boxShadow:"0 2px 8px rgba(0,0,0,0.12)"}}>
-              Boire
-            </span>
-            <button
-              onClick={()=>{setForm({...initialForm,date:todayStr(),time:getNow()});setShowForm(true);setEditId(null);}}
-              style={{width:56,height:56,borderRadius:"50%",border:"none",background:"linear-gradient(135deg,#e8906a,#e06b8a)",color:"white",fontSize:28,fontWeight:"bold",cursor:"pointer",boxShadow:"0 4px 20px rgba(232,144,106,0.5)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <span style={{background:dark?"rgba(0,0,0,0.75)":"rgba(255,255,255,0.95)",color:dark?"#f48fb1":"#c2185b",fontSize:12,fontWeight:"bold",padding:"4px 10px",borderRadius:20,boxShadow:"0 2px 8px rgba(0,0,0,0.15)"}}>Boire</span>
+            <button onClick={()=>{setForm({...initialForm,date:todayStr(),time:getNow()});setShowForm(true);setEditId(null);}}
+              style={{width:56,height:56,borderRadius:"50%",border:"none",background:"linear-gradient(135deg,#e8906a,#e06b8a)",color:"white",fontSize:28,fontWeight:"bold",cursor:"pointer",boxShadow:"0 4px 20px rgba(232,144,106,0.55)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
               +
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-
     </div>
   );
 }
