@@ -38,7 +38,13 @@ function getNextFeedingTime(timeStr, durationMinutes) {
   base.setMinutes(base.getMinutes() + parseInt(durationMinutes));
   return formatTime(base);
 }
-function todayStr() { return new Date().toISOString().split("T")[0]; }
+function todayStr() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth()+1).padStart(2,"0");
+  const d = String(now.getDate()).padStart(2,"0");
+  return `${y}-${m}-${d}`;
+}
 function getNow() {
   const now = new Date();
   return `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
@@ -1265,7 +1271,10 @@ const APPT_TYPES = [
 ];
 
 function daysUntil(dateStr, timeStr) {
-  const dt = new Date(dateStr + "T" + (timeStr || "23:59") + ":00");
+  // Parse date parts explicitly to avoid UTC interpretation
+  const [y, mo, d] = dateStr.split("-").map(Number);
+  const [h, mi] = (timeStr || "23:59").split(":").map(Number);
+  const dt = new Date(y, mo-1, d, h, mi, 0); // local timezone
   const now = new Date();
   return (dt - now) / 86400000; // fractional days — negative means past
 }
