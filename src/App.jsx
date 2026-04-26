@@ -115,7 +115,7 @@ function DaySummary({ entries, dark }) {
 export default function BabyTracker() {
   const [feedings, setFeedings] = useState([]);
   const [growth, setGrowth] = useState([]);
-  const [settings, setSettings] = useState({darkMode:false,babyName:"Bébé"});
+  const [settings, setSettings] = useState({darkMode:"off",babyName:"Bébé"});
   const [profile, setProfile] = useState({nom:"",dateNaissance:"",heureNaissance:"",sexe:"",poidsNaissance:"",tailleNaissance:"",perimCranien:"",typeAlimentation:""});
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -144,7 +144,10 @@ export default function BabyTracker() {
   const timerRef = useRef(null);
   const importRef = useRef();
 
-  const dark = settings.darkMode;
+  const darkModeSetting = settings.darkMode || "off";
+  const dark = darkModeSetting === "on" ? true
+    : darkModeSetting === "off" ? false
+    : (() => { const h = new Date().getHours(); return h >= 20 || h < 6; })();
   const bg = dark ? "#1a1a2e" : "#fdf6f0";
   const cardBg = dark ? "#2a2a3e" : "#fff";
   const textPrimary = dark ? "#f5c6a0" : "#7a3b1e";
@@ -726,15 +729,30 @@ export default function BabyTracker() {
 
           {/* Dark mode */}
           <SectionCard dark={dark} cardBg={cardBg}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div>
-                <div style={{fontSize:13,fontWeight:"bold",color:textPrimary}}>🌙 Mode nuit</div>
-                <div style={{fontSize:12,color:textSecondary}}>Écran sombre pour les boires nocturnes</div>
-              </div>
-              <div onClick={()=>saveSettings({...settings,darkMode:!settings.darkMode})} style={{width:50,height:28,borderRadius:14,background: dark?"#e06b8a":"#ddd",position:"relative",cursor:"pointer",transition:"background 0.2s"}}>
-                <div style={{position:"absolute",top:3,left: dark?24:4,width:22,height:22,borderRadius:"50%",background:"white",boxShadow:"0 1px 4px rgba(0,0,0,0.3)",transition:"left 0.2s"}}/>
-              </div>
+            <div style={{fontSize:13,fontWeight:"bold",color:textPrimary,marginBottom:10}}>🌙 Mode nuit</div>
+            <div style={{display:"flex",gap:8}}>
+              {[
+                {val:"off",  label:"☀️ Off"},
+                {val:"on",   label:"🌙 On"},
+                {val:"auto", label:"🌓 Auto", sub:"20h – 6h"},
+              ].map(opt=>(
+                <button key={opt.val} onClick={()=>saveSettings({...settings,darkMode:opt.val})}
+                  style={{flex:1,padding:"10px 4px",borderRadius:12,border:"2px solid",
+                    borderColor:darkModeSetting===opt.val?"#e06b8a":"#ddd",
+                    background:darkModeSetting===opt.val?(dark?"rgba(224,107,138,0.25)":"#fce4ec"):(dark?"#1e1e30":"#fafafa"),
+                    color:darkModeSetting===opt.val?"#c2185b":(dark?"#666":"#aaa"),
+                    fontWeight:"bold",fontSize:13,cursor:"pointer",
+                    display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                  <span>{opt.label}</span>
+                  {opt.sub && <span style={{fontSize:10,fontWeight:"normal",opacity:0.8}}>{opt.sub}</span>}
+                </button>
+              ))}
             </div>
+            {darkModeSetting==="auto" && (
+              <div style={{marginTop:8,fontSize:12,color:textSecondary,textAlign:"center"}}>
+                {dark ? "🌙 Mode nuit actif" : "☀️ Mode jour actif"}
+              </div>
+            )}
           </SectionCard>
 
           {/* Import/Export */}
