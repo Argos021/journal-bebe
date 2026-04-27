@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { db } from "./firebase.js";
 import { doc, collection, onSnapshot, setDoc, deleteDoc, getDoc } from "firebase/firestore";
 
-const APP_VERSION = "1.0.8";
+const APP_VERSION = "1.0.9";
 
 const STORAGE_KEY = "baby_feedings_v1";
 const GROWTH_KEY = "baby_growth_v1";
@@ -1150,11 +1150,22 @@ function GrowthTab({ growth, setGrowth, setShowGrowthForm, onEdit, profile, dark
   }));
 
   const sorted = [...displayGrowth].sort((a,b) => a.date.localeCompare(b.date));
-  const latest = growth[0];
-  const prev = growth[1];
+  const sortedGrowth = [...growth].sort((a,b) => b.date.localeCompare(a.date)); // newest first for list
+  const latest = sortedGrowth[0];
+  const prev = sortedGrowth[1];
   const poidsChangeG = prev&&latest?.poids&&prev.poids ? (parseFloat(latest.poids)-parseFloat(prev.poids)).toFixed(0) : null;
   const tailleChangeCm = prev&&latest?.taille&&prev.taille ? (parseFloat(latest.taille)-parseFloat(prev.taille)).toFixed(1) : null;
   const craneChangeCm = prev&&latest?.crane&&prev.crane ? (parseFloat(latest.crane)-parseFloat(prev.crane)).toFixed(1) : null;
+
+  // % change vs birth weight from profile
+  const birthPoids = parseFloat(profile?.poidsNaissance) || null;
+  const birthTaille = parseFloat(profile?.tailleNaissance) || null;
+  const poidsPct = birthPoids && latest?.poids
+    ? (((parseFloat(latest.poids) - birthPoids) / birthPoids) * 100).toFixed(1)
+    : null;
+  const taillePct = birthTaille && latest?.taille
+    ? (((parseFloat(latest.taille) - birthTaille) / birthTaille) * 100).toFixed(1)
+    : null;
 
   return (
     <div style={{padding:"16px", maxWidth:480, margin:"0 auto"}}>
@@ -1213,6 +1224,11 @@ function GrowthTab({ growth, setGrowth, setShowGrowthForm, onEdit, profile, dark
                 <div style={{fontSize:11, color:"#888"}}>
                   Poids{poidsChangeG ? ` (${poidsChangeG>0?"+":""}${weightChange(poidsChangeG)}${weightUnitLabel()})` : ""}
                 </div>
+                {poidsPct !== null && (
+                  <div style={{fontSize:11,marginTop:3,fontWeight:"bold",color:parseFloat(poidsPct)>=0?(dark?"#a5d6a7":"#2e7d32"):(dark?"#f48fb1":"#e53935")}}>
+                    {parseFloat(poidsPct)>=0?"▲":"▼"} {Math.abs(poidsPct)}% vs naissance
+                  </div>
+                )}
               </div>
             )}
             {latest.taille && (
@@ -1223,6 +1239,11 @@ function GrowthTab({ growth, setGrowth, setShowGrowthForm, onEdit, profile, dark
                 <div style={{fontSize:11, color:"#888"}}>
                   Taille{tailleChangeCm ? ` (+${heightChange(tailleChangeCm)})` : ""}
                 </div>
+                {taillePct !== null && (
+                  <div style={{fontSize:11,marginTop:3,fontWeight:"bold",color:parseFloat(taillePct)>=0?(dark?"#90caf9":"#1565c0"):(dark?"#f48fb1":"#e53935")}}>
+                    {parseFloat(taillePct)>=0?"▲":"▼"} {Math.abs(taillePct)}% vs naissance
+                  </div>
+                )}
               </div>
             )}
             {latest.crane && (
@@ -1281,7 +1302,7 @@ function GrowthTab({ growth, setGrowth, setShowGrowthForm, onEdit, profile, dark
       )}
 
       {/* LISTE VIEW */}
-      {view === "liste" && growth.map(g => (
+      {view === "liste" && sortedGrowth.map(g => (
         <div key={g.id} style={{...dynCardStyle, display:"flex", justifyContent:"space-between", alignItems:"flex-start"}}>
           <div>
             <div style={{fontSize:14, fontWeight:"bold", color:textPrimary, marginBottom:4}}>{formatDateShort(g.date)}</div>
