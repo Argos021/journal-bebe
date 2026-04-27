@@ -2,13 +2,52 @@ import React, { useState, useRef, useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 
+// ── Error Boundary — shows error on screen instead of white page ──
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{minHeight:"100vh",background:"#fff0f0",fontFamily:"monospace",padding:24,overflowY:"auto"}}>
+          <div style={{fontSize:40,marginBottom:12}}>💥</div>
+          <div style={{fontSize:18,fontWeight:"bold",color:"#c62828",marginBottom:12}}>
+            Erreur — copie ce message et envoie-le
+          </div>
+          <div style={{background:"#ffebee",borderRadius:10,padding:16,fontSize:12,color:"#333",wordBreak:"break-all",whiteSpace:"pre-wrap",border:"2px solid #e53935"}}>
+            {this.state.error?.toString()}
+            {"\n\n"}
+            {this.state.error?.stack}
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function Root() {
-  const [tab, setTab] = useState("journal");
+  const VALID_TABS = ["profil","journal","croissance","sante","options"];
+  const [tab, setTab] = useState(() => {
+    const hash = window.location.hash.replace("#","");
+    return VALID_TABS.includes(hash) ? hash : "journal";
+  });
   const [formOpen, setFormOpen] = useState(false); // true when boire or couche form is open
   const [headerVisible, setHeaderVisible] = useState(true); // true when header still in view
 
   const showBoireRef = useRef(null);
   const showCoucheRef = useRef(null);
+
+  // Keep tab in sync with hash changes (back/forward navigation)
+  useEffect(() => {
+    const VALID_TABS = ["profil","journal","croissance","sante","options"];
+    const onHashChange = () => {
+      const hash = window.location.hash.replace("#","");
+      if (VALID_TABS.includes(hash)) setTab(hash);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
   // Watch scroll to detect when header scrolls out of view (header is ~120px tall)
   useEffect(() => {
@@ -79,6 +118,8 @@ function Root() {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <Root />
+    <ErrorBoundary>
+      <Root />
+    </ErrorBoundary>
   </React.StrictMode>
 )
