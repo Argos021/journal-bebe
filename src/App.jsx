@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { db } from "./firebase.js";
 import { doc, collection, onSnapshot, setDoc, deleteDoc, getDoc } from "firebase/firestore";
-
+ 
 const APP_VERSION = "1.1.9";
 
 const STORAGE_KEY = "baby_feedings_v1";
