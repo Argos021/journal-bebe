@@ -4,7 +4,7 @@ import { db } from "./firebase.js";
 import { doc, collection, onSnapshot, setDoc, deleteDoc, getDoc } from "firebase/firestore";
 
 const APP_VERSION = "1.1.1";
-
+ 
 const STORAGE_KEY = "baby_feedings_v1";
 const GROWTH_KEY = "baby_growth_v1";
 const SETTINGS_KEY = "baby_settings_v1";
