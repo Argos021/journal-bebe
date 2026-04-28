@@ -8,7 +8,7 @@ const inputStyleBase={width:"100%",padding:"10px 14px",borderRadius:10,fontSize:
 const btnPrimaryBase={flex:2,padding:"13px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#e8906a,#e06b8a)",color:"white",fontSize:16,fontWeight:"bold",cursor:"pointer"};
 const btnSecondaryBase={flex:1,padding:"13px 0",borderRadius:12,border:"2px solid #e8c5a8",background:"white",color:"#b05a30",fontSize:15,cursor:"pointer"};
 
-const APP_VERSION = "1.2.6";
+const APP_VERSION = "1.2.7";
 
 // ── WHO Growth Reference Data ─────────────────────────────────────────────────
 // Source: WHO Child Growth Standards (0-24 months)
@@ -1074,6 +1074,82 @@ function btnOptionStyle(dark) {
 function GrowthLineChart({ data, valueKey, color, unit, dark, whoTable, birthDate, weightUnit }) {
   const [tooltip, setTooltip] = useState(null);
   const svgRef = useRef(null);
+  const containerRef = useRef(null);
+
+  // Zoom & pan state
+  const [zoom, setZoom] = useState(1);       // 1 = no zoom, max 5x
+  const [panX, setPanX] = useState(0);       // pan offset in SVG units
+  const lastTouchDist = useRef(null);
+  const lastPanX = useRef(null);
+  const isPanning = useRef(false);
+
+  const MIN_ZOOM = 1, MAX_ZOOM = 5;
+
+  // Mouse wheel zoom
+  function handleWheel(e) {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.85 : 1.18;
+    setZoom(z => {
+      const next = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z * delta));
+      if (next === MIN_ZOOM) setPanX(0);
+      return next;
+    });
+  }
+
+  // Touch handlers for pinch zoom + pan
+  function handleTouchStart(e) {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastTouchDist.current = Math.sqrt(dx*dx + dy*dy);
+      isPanning.current = false;
+    } else if (e.touches.length === 1) {
+      lastPanX.current = e.touches[0].clientX;
+      isPanning.current = true;
+    }
+  }
+
+  function handleTouchMove(e) {
+    if (e.touches.length === 2 && lastTouchDist.current) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const scale = dist / lastTouchDist.current;
+      lastTouchDist.current = dist;
+      setZoom(z => {
+        const next = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z * scale));
+        if (next === MIN_ZOOM) setPanX(0);
+        return next;
+      });
+    } else if (e.touches.length === 1 && isPanning.current && lastPanX.current !== null) {
+      e.preventDefault();
+      const deltaX = e.touches[0].clientX - lastPanX.current;
+      lastPanX.current = e.touches[0].clientX;
+      const svgW = 320;
+      // Convert pixel delta to SVG units
+      const svgDelta = (deltaX / (containerRef.current?.clientWidth || svgW)) * svgW;
+      setPanX(p => {
+        const maxPan = (svgW * (zoom - 1)) / 2;
+        return Math.max(-maxPan, Math.min(maxPan, p + svgDelta));
+      });
+    }
+  }
+
+  function handleTouchEnd() {
+    lastTouchDist.current = null;
+    lastPanX.current = null;
+    isPanning.current = false;
+  }
+
+  // Attach wheel listener with passive:false to allow preventDefault
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, []);
+
   const sorted = [...data].filter(d => d[valueKey]).sort((a,b) => a.date.localeCompare(b.date));
 
   if (sorted.length < 1) return (
@@ -1202,7 +1278,7 @@ function GrowthLineChart({ data, valueKey, color, unit, dark, whoTable, birthDat
   const areaPoints = `${dataPoints[0]?.cx},${padT+gH} ${linePoints} ${dataPoints[dataPoints.length-1]?.cx},${padT+gH}`;
 
   return (
-    <div style={{overflowX:"auto", position:"relative"}}>
+    <div style={{position:"relative"}}>
       {/* WHO legend */}
       {whoPoints && (
         <div style={{display:"flex",gap:12,justifyContent:"center",marginBottom:6,flexWrap:"wrap"}}>
@@ -1219,45 +1295,69 @@ function GrowthLineChart({ data, valueKey, color, unit, dark, whoTable, birthDat
         </div>
       )}
 
-      <svg ref={svgRef} width={W} height={H} style={{display:"block",margin:"0 auto"}} onClick={()=>setTooltip(null)}>
-        {/* Grid */}
-        {yLabels.map((v,i)=>(
-          <g key={i}>
-            <line x1={padL} y1={py(v)} x2={W-padR} y2={py(v)} stroke={gridCol} strokeWidth={1}/>
-            <text x={padL-4} y={py(v)+4} textAnchor="end" fontSize={9} fill={textCol}>{v}</text>
-          </g>
-        ))}
+      {/* Zoom controls */}
+      <div style={{display:"flex",justifyContent:"flex-end",gap:6,marginBottom:4}}>
+        {zoom > 1 && (
+          <button onClick={()=>{setZoom(1);setPanX(0);}} style={{fontSize:10,padding:"2px 8px",borderRadius:10,border:`1px solid ${dark?"#444":"#ddd"}`,background:dark?"#2a2a3e":"#f5f5f5",color:dark?"#aaa":"#888",cursor:"pointer"}}>
+            ↺ Reset zoom
+          </button>
+        )}
+        <span style={{fontSize:10,color:dark?"#555":"#bbb",alignSelf:"center"}}>
+          {zoom > 1 ? `${zoom.toFixed(1)}x` : "🔍 Pinch ou molette"}
+        </span>
+      </div>
 
-        {/* WHO reference lines */}
-        {whoPoints && WHO_COLORS.map(({pIdx,color:wc,dash,opacity})=>(
-          <path key={pIdx} d={whoLinePath(pIdx)} fill="none" stroke={wc}
-            strokeWidth={pIdx===2?1.5:1} strokeDasharray={dash} opacity={opacity}/>
-        ))}
-
-        {/* Baby data area + line */}
-        {sorted.length > 1 && <>
-          <polygon points={areaPoints} fill={color} fillOpacity={0.15}/>
-          <polyline points={linePoints} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round"/>
-        </>}
-
-        {/* Dots */}
-        {dataPoints.map(({d,i,val,prevVal,cx})=>{
-          const isSelected = tooltip?.i === i;
-          return (
-            <g key={i} onClick={e=>handleDotClick(e,d,i,val,prevVal)} style={{cursor:"pointer"}}>
-              <circle cx={cx} cy={py(val)} r={14} fill="transparent"/>
-              <circle cx={cx} cy={py(val)} r={isSelected?6:4}
-                fill={isSelected?"white":color}
-                stroke={isSelected?color:(dark?"#1a1a2e":"white")}
-                strokeWidth={isSelected?3:2}/>
-              <text x={cx} y={H-4} textAnchor="middle" fontSize={9} fill={isSelected?color:textCol}>
-                {d._label||formatDateShort(d.date)}
-              </text>
+      {/* SVG container with touch/wheel handlers */}
+      <div
+        ref={containerRef}
+        style={{overflowX:"hidden", position:"relative", touchAction:"none", cursor:zoom>1?"grab":"default"}}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <svg ref={svgRef} width={W} height={H} style={{display:"block",margin:"0 auto"}} onClick={()=>setTooltip(null)}>
+          {/* Zoom/pan transform group */}
+          <g transform={`translate(${panX * zoom * 0.3},0) scale(${zoom},1) translate(${-(zoom-1)*W/2/zoom},0)`}>
+          {/* Grid */}
+          {yLabels.map((v,i)=>(
+            <g key={i}>
+              <line x1={padL} y1={py(v)} x2={W-padR} y2={py(v)} stroke={gridCol} strokeWidth={1/zoom}/>
+              <text x={padL-4} y={py(v)+4} textAnchor="end" fontSize={9/zoom} fill={textCol}>{v}</text>
             </g>
-          );
-        })}
-        <text x={padL-2} y={padT-4} fontSize={9} fill={textCol}>{unit}</text>
-      </svg>
+          ))}
+
+          {/* WHO reference lines */}
+          {whoPoints && WHO_COLORS.map(({pIdx,color:wc,dash,opacity})=>(
+            <path key={pIdx} d={whoLinePath(pIdx)} fill="none" stroke={wc}
+              strokeWidth={(pIdx===2?1.5:1)/zoom} strokeDasharray={dash} opacity={opacity}/>
+          ))}
+
+          {/* Baby data area + line */}
+          {sorted.length > 1 && <>
+            <polygon points={areaPoints} fill={color} fillOpacity={0.15}/>
+            <polyline points={linePoints} fill="none" stroke={color} strokeWidth={2.5/zoom} strokeLinejoin="round" strokeLinecap="round"/>
+          </>}
+
+          {/* Dots */}
+          {dataPoints.map(({d,i,val,prevVal,cx})=>{
+            const isSelected = tooltip?.i === i;
+            return (
+              <g key={i} onClick={e=>handleDotClick(e,d,i,val,prevVal)} style={{cursor:"pointer"}}>
+                <circle cx={cx} cy={py(val)} r={14/zoom} fill="transparent"/>
+                <circle cx={cx} cy={py(val)} r={(isSelected?6:4)/zoom}
+                  fill={isSelected?"white":color}
+                  stroke={isSelected?color:(dark?"#1a1a2e":"white")}
+                  strokeWidth={(isSelected?3:2)/zoom}/>
+                <text x={cx} y={H-4} textAnchor="middle" fontSize={9/zoom} fill={isSelected?color:textCol}>
+                  {d._label||formatDateShort(d.date)}
+                </text>
+              </g>
+            );
+          })}
+          <text x={padL-2} y={padT-4} fontSize={9/zoom} fill={textCol}>{unit}</text>
+          </g>
+        </svg>
+      </div>
 
       {/* Tooltip */}
       {tooltip && createPortal((() => {
