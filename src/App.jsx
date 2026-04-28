@@ -8,7 +8,7 @@ const inputStyleBase={width:"100%",padding:"10px 14px",borderRadius:10,fontSize:
 const btnPrimaryBase={flex:2,padding:"13px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#e8906a,#e06b8a)",color:"white",fontSize:16,fontWeight:"bold",cursor:"pointer"};
 const btnSecondaryBase={flex:1,padding:"13px 0",borderRadius:12,border:"2px solid #e8c5a8",background:"white",color:"#b05a30",fontSize:15,cursor:"pointer"};
 
-const APP_VERSION = "1.2.5";
+const APP_VERSION = "1.2.6";
 
 // ── WHO Growth Reference Data ─────────────────────────────────────────────────
 // Source: WHO Child Growth Standards (0-24 months)
@@ -1222,110 +1222,6 @@ function GrowthLineChart({ data, valueKey, color, unit, dark, whoTable, birthDat
       <svg ref={svgRef} width={W} height={H} style={{display:"block",margin:"0 auto"}} onClick={()=>setTooltip(null)}>
         {/* Grid */}
         {yLabels.map((v,i)=>(
-          <g key={i}>
-            <line x1={padL} y1={py(v)} x2={W-padR} y2={py(v)} stroke={gridCol} strokeWidth={1}/>
-            <text x={padL-4} y={py(v)+4} textAnchor="end" fontSize={9} fill={textCol}>{v}</text>
-          </g>
-        ))}
-
-        {/* WHO reference lines */}
-        {whoPoints && WHO_COLORS.map(({pIdx,color:wc,dash,opacity})=>(
-          <path key={pIdx} d={whoLinePath(pIdx)} fill="none" stroke={wc}
-            strokeWidth={pIdx===2?1.5:1} strokeDasharray={dash} opacity={opacity}/>
-        ))}
-
-        {/* Baby data area + line */}
-        {sorted.length > 1 && <>
-          <polygon points={areaPoints} fill={color} fillOpacity={0.15}/>
-          <polyline points={linePoints} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round"/>
-        </>}
-
-        {/* Dots */}
-        {dataPoints.map(({d,i,val,prevVal,cx})=>{
-          const isSelected = tooltip?.i === i;
-          return (
-            <g key={i} onClick={e=>handleDotClick(e,d,i,val,prevVal)} style={{cursor:"pointer"}}>
-              <circle cx={cx} cy={py(val)} r={14} fill="transparent"/>
-              <circle cx={cx} cy={py(val)} r={isSelected?6:4}
-                fill={isSelected?"white":color}
-                stroke={isSelected?color:(dark?"#1a1a2e":"white")}
-                strokeWidth={isSelected?3:2}/>
-              <text x={cx} y={H-4} textAnchor="middle" fontSize={9} fill={isSelected?color:textCol}>
-                {d._label||formatDateShort(d.date)}
-              </text>
-            </g>
-          );
-        })}
-        <text x={padL-2} y={padT-4} fontSize={9} fill={textCol}>{unit}</text>
-      </svg>
-
-      {/* Tooltip */}
-      {tooltip && createPortal((() => {
-        const {val,prevVal,screenX,screenY,pct} = tooltip;
-        const diff = prevVal!==null ? (val-prevVal) : null;
-        const diffPct = prevVal!==null ? ((val-prevVal)/prevVal*100) : null;
-        const birthPct2 = birthVal&&!tooltip.d._isBirth ? ((val-birthVal)/birthVal*100) : null;
-        const label = tooltip.d._label||formatDateShort(tooltip.d.date);
-        const bubbleW = 180;
-        const left = Math.max(8, Math.min(screenX-bubbleW/2, window.innerWidth-bubbleW-8));
-        const top = screenY - 16;
-        return (
-          <div onClick={()=>setTooltip(null)} style={{position:"absolute",top:top+"px",left:left+"px",transform:"translateY(-100%)",background:dark?"#2a2a3e":"white",border:`2px solid ${color}`,borderRadius:12,padding:"10px 14px",fontSize:12,color:dark?"#f5deb3":"#333",boxShadow:"0 4px 24px rgba(0,0,0,0.25)",zIndex:99999,width:bubbleW+"px",cursor:"pointer"}}>
-            <div style={{fontWeight:"bold",color,marginBottom:4}}>{label}</div>
-            <div style={{fontSize:15,fontWeight:"bold",marginBottom:4}}>{val.toFixed(unit==="g"?0:1)} {unit}</div>
-            {pct && <div style={{background:dark?"#1a1a2e":"#f5f5f5",borderRadius:8,padding:"3px 8px",fontSize:11,fontWeight:"bold",color:"#333",marginBottom:4}}>📊 Percentile OMS : {pct}</div>}
-            {diff!==null && <div style={{color:diff>=0?"#4caf50":"#e53935",marginBottom:2}}>{diff>=0?"▲":"▼"} {Math.abs(diff).toFixed(unit==="g"?0:1)} {unit} vs précédent</div>}
-            {diffPct!==null && <div style={{color:diff>=0?"#4caf50":"#e53935",marginBottom:2}}>{diffPct>=0?"▲":"▼"} {Math.abs(diffPct).toFixed(1)}%</div>}
-            {birthPct2!==null && <div style={{color:birthPct2>=0?"#1565c0":"#ff7043",fontSize:11,marginTop:4,borderTop:`1px solid ${dark?"#333":"#eee"}`,paddingTop:4}}>{birthPct2>=0?"▲":"▼"} {Math.abs(birthPct2).toFixed(1)}% vs naissance</div>}
-          </div>
-        );
-      })(), document.body)}
-    </div>
-  );
-}
-  const [tooltip, setTooltip] = useState(null);
-  const svgRef = useRef(null);
-  const sorted = [...data].filter(d => d[valueKey]).sort((a,b) => a.date.localeCompare(b.date));
-
-  if (sorted.length < 2) return (
-    <div style={{textAlign:"center",color:"#aaa",fontSize:13,padding:"20px 0"}}>
-      Ajoute au moins 2 mesures pour voir le graphique.
-    </div>
-  );
-
-  const vals = sorted.map(d => parseFloat(d[valueKey]));
-  const minV = Math.min(...vals), maxV = Math.max(...vals);
-  const range = maxV - minV || 1;
-  const W = 320, H = 150, padL = 44, padR = 12, padT = 16, padB = 28;
-  const gW = W - padL - padR, gH = H - padT - padB;
-  const px = i => padL + (i / (sorted.length - 1)) * gW;
-  const py = v => padT + gH - ((v - minV) / range) * gH;
-  const points = sorted.map((d,i) => `${px(i)},${py(parseFloat(d[valueKey]))}`).join(" ");
-  const areaPoints = `${px(0)},${padT+gH} ${points} ${px(sorted.length-1)},${padT+gH}`;
-  const yLabels = [minV, minV + range/2, maxV].map(v => Math.round(v * 10) / 10);
-  const textCol = dark ? "#aaa" : "#888";
-  const gridCol = dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
-  const birthVal = sorted.find(d => d._isBirth) ? parseFloat(sorted.find(d => d._isBirth)[valueKey]) : null;
-
-  function handleDotClick(e, d, i, val, prevVal) {
-    e.stopPropagation();
-    if (tooltip?.i === i) { setTooltip(null); return; }
-    // Get screen coordinates of the dot
-    const svgRect = svgRef.current?.getBoundingClientRect();
-    if (!svgRect) return;
-    const scaleX = svgRect.width / W;
-    const scaleY = svgRect.height / H;
-    const screenX = svgRect.left + px(i) * scaleX;
-    const screenY = svgRect.top + py(val) * scaleY + window.scrollY;
-    setTooltip({ i, d, val, prevVal, screenX, screenY });
-  }
-
-  return (
-    <div style={{overflowX:"auto", position:"relative"}}>
-      <svg ref={svgRef} width={W} height={H}
-        style={{display:"block", margin:"0 auto"}}
-        onClick={() => setTooltip(null)}>
-        {yLabels.map((v,i) => (
           <g key={i}>
             <line x1={padL} y1={py(v)} x2={W-padR} y2={py(v)} stroke={gridCol} strokeWidth={1}/>
             <text x={padL-4} y={py(v)+4} textAnchor="end" fontSize={9} fill={textCol}>{v}</text>
