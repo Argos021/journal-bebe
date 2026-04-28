@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { db } from "./firebase.js";
 import { doc, collection, onSnapshot, setDoc, deleteDoc, getDoc } from "firebase/firestore";
-
+ 
 // Base styles — declared at top so all components can use them
 const inputStyleBase={width:"100%",padding:"10px 14px",borderRadius:10,fontSize:15,marginBottom:14,boxSizing:"border-box",outline:"none",fontFamily:"Georgia,serif"};
 const btnPrimaryBase={flex:2,padding:"13px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#e8906a,#e06b8a)",color:"white",fontSize:16,fontWeight:"bold",cursor:"pointer"};
