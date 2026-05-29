@@ -7,7 +7,7 @@ const inputStyleBase={width:"100%",padding:"10px 14px",borderRadius:10,fontSize:
 const btnPrimaryBase={flex:2,padding:"13px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#e8906a,#e06b8a)",color:"white",fontSize:16,fontWeight:"bold",cursor:"pointer"};
 const btnSecondaryBase={flex:1,padding:"13px 0",borderRadius:12,border:"2px solid #e8c5a8",background:"white",color:"#b05a30",fontSize:15,cursor:"pointer"};
 
-const APP_VERSION = "1.5.4";
+const APP_VERSION = "1.5.5";
 
 // ── WHO Growth Reference Data ─────────────────────────────────────────────────
 // Source: WHO Child Growth Standards (0-24 months)
@@ -1308,19 +1308,18 @@ function TireLaitTab({ tireLait, dark, cardBg, textPrimary, textSecondary, dynIn
   const [viewMode, setViewMode] = useState("auto");
   const [collapsedDays, setCollapsedDays] = useState({});
   const [graphMode, setGraphMode] = useState("mois"); // "mois" | "jour" | "annee"
-  const [graphDay, setGraphDay] = useState(todayStr());
+  const [graphDay, setGraphDay] = useState(""); // empty = auto-select
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const n = new Date();
     return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}`;
   });
+  const prevMonthRef = useRef(selectedMonth);
 
-  // Reset graphDay when selectedMonth changes — fix stale day bug
+  // Reset graphDay when selectedMonth changes (not on first render)
   useEffect(() => {
-    const daysWithData = Object.keys(grouped).filter(d=>d.startsWith(selectedMonth)).sort();
-    if (daysWithData.length > 0) {
-      setGraphDay(daysWithData[daysWithData.length-1]); // most recent day in month
-    } else {
-      setGraphDay(selectedMonth+"-01"); // fallback — no data shown
+    if (prevMonthRef.current !== selectedMonth) {
+      prevMonthRef.current = selectedMonth;
+      setGraphDay(""); // reset to auto-select
     }
   }, [selectedMonth]);
 
@@ -1387,8 +1386,15 @@ function TireLaitTab({ tireLait, dark, cardBg, textPrimary, textSecondary, dynIn
     return {label:date.slice(8),val:tot};
   }).filter(d=>d.val>0);
 
-  // Fix: only show data if graphDay is in the selected month
-  const validGraphDay = graphDay.startsWith(selectedMonth) ? graphDay : selectedMonth+"-01";
+  // Auto-select best day: graphDay if valid, else today if in month, else most recent day with data
+  const daysInMonthWithData = daysInMonth.filter(d=>grouped[d]);
+  const validGraphDay = (() => {
+    if (graphDay && graphDay.startsWith(selectedMonth) && grouped[graphDay]) return graphDay;
+    const today = todayStr();
+    if (today.startsWith(selectedMonth) && grouped[today]) return today;
+    if (daysInMonthWithData.length > 0) return daysInMonthWithData[daysInMonthWithData.length-1];
+    return selectedMonth+"-01";
+  })();
   const graphDataJour = (grouped[validGraphDay]||[])
     .map(e=>({label:e.time,val:parseFloat(e.quantite)||0}))
     .sort((a,b)=>a.label.localeCompare(b.label));
@@ -2930,7 +2936,3 @@ function ProfileTab({ profile, saveProfile, dark, cardBg, textPrimary, textSecon
     </div>
   );
 }
-
-
-
-
