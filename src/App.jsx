@@ -7,7 +7,7 @@ const inputStyleBase={width:"100%",padding:"10px 14px",borderRadius:10,fontSize:
 const btnPrimaryBase={flex:2,padding:"13px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#e8906a,#e06b8a)",color:"white",fontSize:16,fontWeight:"bold",cursor:"pointer"};
 const btnSecondaryBase={flex:1,padding:"13px 0",borderRadius:12,border:"2px solid #e8c5a8",background:"white",color:"#b05a30",fontSize:15,cursor:"pointer"};
 
-const APP_VERSION = "1.6.4";
+const APP_VERSION = "1.6.5";
 
 // ── WHO Growth Reference Data ─────────────────────────────────────────────────
 // Source: WHO Child Growth Standards (0-24 months)
@@ -982,12 +982,11 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
                               )}
                               {d.val>0&&(rotL ? (() => {
                                 const cx2 = x+w/2;
-                                const ty2 = pY2(d.val) - 3;
+                                const ty2 = pY2(d.val) - 2;
                                 return (
                                   <text
                                     transform={`translate(${cx2},${ty2}) rotate(-90)`}
                                     textAnchor="end"
-                                    dominantBaseline="middle"
                                     fontSize={8}
                                     fill={dark?"#f48fb1":"#c2185b"}
                                     fontWeight="bold">
@@ -1689,12 +1688,11 @@ function TireLaitTab({ tireLait, dark, cardBg, textPrimary, textSecondary, dynIn
                 )}
                 {d.val>0&&(rotateLabels ? (() => {
                   const cx = pxBar(i,graphData.length)+barW(graphData.length)/2;
-                  const ty = pyR(d.val) - 3;
+                  const ty = pyR(d.val) - 2;
                   return (
                     <text
                       transform={`translate(${cx},${ty}) rotate(-90)`}
                       textAnchor="end"
-                      dominantBaseline="middle"
                       fontSize={8}
                       fill={dark?"#90caf9":"#1565c0"}
                       fontWeight="bold">
@@ -3138,7 +3136,3 @@ function ProfileTab({ profile, saveProfile, dark, cardBg, textPrimary, textSecon
     </div>
   );
 }
-
-
-
-
