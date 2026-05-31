@@ -7,7 +7,7 @@ const inputStyleBase={width:"100%",padding:"10px 14px",borderRadius:10,fontSize:
 const btnPrimaryBase={flex:2,padding:"13px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#e8906a,#e06b8a)",color:"white",fontSize:16,fontWeight:"bold",cursor:"pointer"};
 const btnSecondaryBase={flex:1,padding:"13px 0",borderRadius:12,border:"2px solid #e8c5a8",background:"white",color:"#b05a30",fontSize:15,cursor:"pointer"};
 
-const APP_VERSION = "1.6.6";
+const APP_VERSION = "1.6.2";
 
 // ── WHO Growth Reference Data ─────────────────────────────────────────────────
 // Source: WHO Child Growth Standards (0-24 months)
@@ -939,10 +939,6 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
                       </div>
                     )}
                   </div>
-                  {/* Spacer for mois/annee */}
-                  {(journalGraphMode==="mois"||journalGraphMode==="annee") && (
-                    <div style={{height:36}}/>
-                  )}
                   {jData.length>0 ? (
                     <svg width={W2} height={journalGraphMode==="mois"||journalGraphMode==="annee"?H2+20:H2} style={{display:"block",margin:"0 auto",overflow:"visible"}}>
                       {(() => {
@@ -982,16 +978,15 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
                               )}
                               {d.val>0&&(rotL ? (() => {
                                 const cx2 = x+w/2;
-                                const valY2 = pY2(d.val) - 4;
+                                const topY2 = pY2(d.val) - 10;
                                 return (
                                   <text
-                                    x={cx2}
-                                    y={valY2}
-                                    textAnchor="end"
+                                    transform={`translate(${cx2},${topY2}) rotate(-90)`}
+                                    textAnchor="middle"
+                                    dominantBaseline="middle"
                                     fontSize={8}
                                     fill={dark?"#f48fb1":"#c2185b"}
-                                    fontWeight="bold"
-                                    transform={`rotate(-90,${cx2},${valY2})`}>
+                                    fontWeight="bold">
                                     {fmtVal2(Math.round(d.val))}
                                   </text>
                                 );
@@ -1653,10 +1648,6 @@ function TireLaitTab({ tireLait, dark, cardBg, textPrimary, textSecondary, dynIn
             </div>
           )}
         </div>
-        {/* Spacer for mois/annee to match jour layout */}
-        {(graphMode==="mois"||graphMode==="annee") && (
-          <div style={{height:36}}/>
-        )}
         {graphData.length>0 ? (() => {
           const fmtV = v => v>=1000?(v/1000).toFixed(2)+"L":v+"";
           const rotateLabels = graphMode==="mois"||graphMode==="annee";
@@ -1690,16 +1681,15 @@ function TireLaitTab({ tireLait, dark, cardBg, textPrimary, textSecondary, dynIn
                 )}
                 {d.val>0&&(rotateLabels ? (() => {
                   const cx = pxBar(i,graphData.length)+barW(graphData.length)/2;
-                  const valY = pyR(d.val) - 4;
+                  const topY = pyR(d.val) - 10;
                   return (
                     <text
-                      x={cx}
-                      y={valY}
-                      textAnchor="end"
+                      transform={`translate(${cx},${topY}) rotate(-90)`}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
                       fontSize={8}
                       fill={dark?"#90caf9":"#1565c0"}
-                      fontWeight="bold"
-                      transform={`rotate(-90,${cx},${valY})`}>
+                      fontWeight="bold">
                       {fmtV(Math.round(d.val))}
                     </text>
                   );
