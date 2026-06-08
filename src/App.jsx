@@ -16,7 +16,7 @@ import { SanteTab, daysUntil, calendarDaysUntil } from "./components/SanteTab.js
 const initialForm = {
   date: todayStr(), time: getNow(), durationH: 3, durationM: 0,
   seinPremier: null, complMaternel: "", complCommercial: "", pipi: false, caca: false,
-  vitamineD: false, nombril: false, yeux: false, regurgi: 0, note: "",
+  vitamineD: false, nombril: false, yeux: false, regurgi: 0, note: "", horsSequence: false,
 };
 
 // ── Main App ──────────────────────────────────────────────────────────────────
@@ -67,8 +67,8 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
 
   function setViewModeAndSave(mode) {
     setViewMode(mode);
-    try { localStorage.setItem("journalViewMode", mode); } catch { }
-    if (mode !== "libre") { setCollapsedDays({}); try { localStorage.setItem("collapsedDays", "{}"); } catch { } }
+    try { localStorage.setItem("journalViewMode", mode); } catch {}
+    if (mode !== "libre") { setCollapsedDays({}); try { localStorage.setItem("collapsedDays", "{}"); } catch {} }
   }
 
   function toggleDayCollapse(date, sortedDates) {
@@ -78,12 +78,12 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
       sortedDates.forEach((d, i) => { if (i >= 2) next[d] = true; });
       next[date] = !next[date];
       setCollapsedDays(next);
-      try { localStorage.setItem("collapsedDays", JSON.stringify(next)); } catch { }
+      try { localStorage.setItem("collapsedDays", JSON.stringify(next)); } catch {}
       return;
     }
     setCollapsedDays(prev => {
       const next = { ...prev, [date]: !prev[date] };
-      try { localStorage.setItem("collapsedDays", JSON.stringify(next)); } catch { }
+      try { localStorage.setItem("collapsedDays", JSON.stringify(next)); } catch {}
       return next;
     });
   }
@@ -136,8 +136,8 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
     return () => unsubs.forEach(u => u());
   }, []);
 
-  function saveProfile(newProfile) { setProfile(newProfile); setDoc(doc(db, "config", "profile"), newProfile).catch(() => { }); }
-  function saveSettings(newSettings) { setSettings(newSettings); setDoc(doc(db, "config", "settings"), newSettings).catch(() => { }); }
+  function saveProfile(newProfile) { setProfile(newProfile); setDoc(doc(db, "config", "profile"), newProfile).catch(() => {}); }
+  function saveSettings(newSettings) { setSettings(newSettings); setDoc(doc(db, "config", "settings"), newSettings).catch(() => {}); }
 
   // Timer
   useEffect(() => {
@@ -159,7 +159,8 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
   const sortedDates = filteredDates;
 
   const boireEntries = feedings.filter(f => f._type !== "couche");
-  const lastFeeding = boireEntries.length > 0 ? boireEntries.reduce((latest, f) => ((f.date + "T" + f.time) > (latest.date + "T" + latest.time) ? f : latest)) : null;
+  const boireEntriesTimer = boireEntries.filter(f => !f.horsSequence);
+  const lastFeeding = boireEntriesTimer.length > 0 ? boireEntriesTimer.reduce((latest, f) => ((f.date + "T" + f.time) > (latest.date + "T" + latest.time) ? f : latest)) : null;
   const lastFeedingAgo = lastFeeding ? timeSince(lastFeeding.date, lastFeeding.time) : null;
   const lastFeedingNext = lastFeeding ? (() => { const totalMins = (parseInt(lastFeeding.durationH) || 0) * 60 + (parseInt(lastFeeding.durationM) || 0) || (parseInt(lastFeeding.duration) || 0); return getNextFeedingTime(lastFeeding.time, totalMins); })() : null;
 
@@ -178,7 +179,7 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
     if (f.duration && f.durationH === undefined) { const t = parseInt(f.duration) || 0; dH = Math.floor(t / 60); dM = t % 60; }
     let seinPremier = f.seinPremier !== undefined ? f.seinPremier : null;
     if (seinPremier === null && (f.seinGauche || f.seinDroit)) seinPremier = f.seinGauche ? "gauche" : "droite";
-    setForm({ date: f.date || todayStr(), time: f.time, durationH: dH, durationM: dM, seinPremier, complMaternel: f.complMaternel !== undefined ? f.complMaternel : (f.complementType === "maternel" ? f.complement || "" : ""), complCommercial: f.complCommercial !== undefined ? f.complCommercial : (f.complementType === "commercial" ? f.complement || "" : ""), pipi: f.pipi, caca: f.caca, vitamineD: f.vitamineD || false, nombril: f.nombril || false, yeux: f.yeux || false, regurgi: f.regurgi || 0, note: f.note });
+    setForm({ date: f.date || todayStr(), time: f.time, durationH: dH, durationM: dM, seinPremier, complMaternel: f.complMaternel !== undefined ? f.complMaternel : (f.complementType === "maternel" ? f.complement || "" : ""), complCommercial: f.complCommercial !== undefined ? f.complCommercial : (f.complementType === "commercial" ? f.complement || "" : ""), pipi: f.pipi, caca: f.caca, vitamineD: f.vitamineD || false, nombril: f.nombril || false, yeux: f.yeux || false, regurgi: f.regurgi || 0, note: f.note, horsSequence: f.horsSequence || false });
     setEditId(f.id); setShowForm(true);
   }
 
@@ -569,6 +570,16 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
               </div>
               <button onClick={() => setForm(f => ({ ...f, regurgi: (parseInt(f.regurgi) || 0) + 1 }))} style={{ width: 36, height: 36, borderRadius: "50%", border: `1.5px solid ${dark ? "#555" : "#ddd"}`, background: dark ? "#2a2a3e" : "#f5f5f5", color: textPrimary, fontSize: 20, fontWeight: "bold", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
             </div>
+            <Label dark={dark}>🔀 Hors séquence</Label>
+            <button onClick={() => setForm(f => ({ ...f, horsSequence: !f.horsSequence }))}
+              style={{ width: "100%", padding: "13px 0", borderRadius: 12, border: "2px solid", marginBottom: 14, borderColor: form.horsSequence ? "#ff9800" : (dark ? "#3a3a5e" : "#ddd"), background: form.horsSequence ? (dark ? "rgba(255,152,0,0.15)" : "#fff8e1") : (dark ? "#1e1e30" : "#fafafa"), color: form.horsSequence ? "#ff9800" : (dark ? "#555" : "#aaa"), fontWeight: "bold", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.15s" }}>
+              {form.horsSequence ? "🔀 Hors séquence — Timer non affecté" : "🔀 Hors séquence (Off)"}
+            </button>
+            {form.horsSequence && (
+              <div style={{ fontSize: 12, color: "#ff9800", marginTop: -10, marginBottom: 14, paddingLeft: 4 }}>
+                ⚠️ Ce boire ne relancera pas le timer du prochain boire.
+              </div>
+            )}
             <Label dark={dark}>📝 Note</Label>
             <textarea placeholder="Observations..." value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} rows={3} style={{ ...dynInputStyle, resize: "vertical", minHeight: 70 }} />
             <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
