@@ -1,6 +1,6 @@
 // ── App constants ─────────────────────────────────────────────────────────────
 
-export const APP_VERSION = "1.6.3";
+export const APP_VERSION = "1.7.0";
 
 export const HOURS_OPTIONS = [0,1,2,3,4,5,6,7,8,9,10,11,12];
 export const MINUTES_OPTIONS = [0,5,10,15,20,25,30,35,40,45,50,55];
