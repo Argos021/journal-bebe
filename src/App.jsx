@@ -571,9 +571,9 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
               <button onClick={() => setForm(f => ({ ...f, regurgi: (parseInt(f.regurgi) || 0) + 1 }))} style={{ width: 36, height: 36, borderRadius: "50%", border: `1.5px solid ${dark ? "#555" : "#ddd"}`, background: dark ? "#2a2a3e" : "#f5f5f5", color: textPrimary, fontSize: 20, fontWeight: "bold", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
             </div>
             <Label dark={dark}>🔀 Hors séquence</Label>
-            <button onClick={() => setForm(f => ({ ...f, horsSequence: !f.horsSequence }))}
+            <button onClick={() => setForm(f => ({ ...f, horsSequence: !f.horsSequence, durationH: !f.horsSequence ? 0 : 3, durationM: 0 }))}
               style={{ width: "100%", padding: "13px 0", borderRadius: 12, border: "2px solid", marginBottom: 14, borderColor: form.horsSequence ? "#ff9800" : (dark ? "#3a3a5e" : "#ddd"), background: form.horsSequence ? (dark ? "rgba(255,152,0,0.15)" : "#fff8e1") : (dark ? "#1e1e30" : "#fafafa"), color: form.horsSequence ? "#ff9800" : (dark ? "#555" : "#aaa"), fontWeight: "bold", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.15s" }}>
-              {form.horsSequence ? "🔀 Hors séquence — Timer non affecté" : "🔀 Hors séquence (Off)"}
+              {form.horsSequence ? "🔀 Hors séquence — Timer non affecté" : "🔀 Hors séquence"}
             </button>
             {form.horsSequence && (
               <div style={{ fontSize: 12, color: "#ff9800", marginTop: -10, marginBottom: 14, paddingLeft: 4 }}>
