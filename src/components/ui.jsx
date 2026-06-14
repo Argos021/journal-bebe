@@ -84,7 +84,7 @@ export function btnOptionStyle(dark) {
 
 export function DaySummary({ entries, dark }) {
   const boires = entries.filter(e => e._type !== "couche");
-  const nbBoires = boires.length;
+  const nbBoires = boires.filter(e => !e.horsSequenceNbBoire).length;
   const nbPipi = entries.filter(e => e.pipi).length;
   const nbCaca = entries.filter(e => e.caca).length;
   const nbNombril = boires.filter(e => e.nombril).length;

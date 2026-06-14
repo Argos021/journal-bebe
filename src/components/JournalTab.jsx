@@ -161,7 +161,7 @@ export function JournalTab({
               const allBoires = feedings.filter(f => f._type !== "couche");
               const allDays = [...new Set(feedings.map(f => f.date))].length;
               function calc(boires, allE, days) {
-                const total = boires.length;
+                const total = boires.filter(f => !f.horsSequenceNbBoire).length;
                 const avg = days > 0 ? (total / days).toFixed(1) : 0;
                 const pipi = allE.filter(f => f.pipi).length;
                 const caca = allE.filter(f => f.caca).length;

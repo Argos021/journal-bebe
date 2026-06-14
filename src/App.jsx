@@ -16,7 +16,7 @@ import { SanteTab, daysUntil, calendarDaysUntil } from "./components/SanteTab.js
 const initialForm = {
   date: todayStr(), time: getNow(), durationH: 3, durationM: 0,
   seinPremier: null, complMaternel: "", complCommercial: "", pipi: false, caca: false,
-  vitamineD: false, nombril: false, yeux: false, regurgi: 0, note: "", horsSequence: false,
+  vitamineD: false, nombril: false, yeux: false, regurgi: 0, note: "", horsSequence: false, horsSequenceNbBoire: false,
 };
 
 // ── Main App ──────────────────────────────────────────────────────────────────
@@ -179,7 +179,7 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
     if (f.duration && f.durationH === undefined) { const t = parseInt(f.duration) || 0; dH = Math.floor(t / 60); dM = t % 60; }
     let seinPremier = f.seinPremier !== undefined ? f.seinPremier : null;
     if (seinPremier === null && (f.seinGauche || f.seinDroit)) seinPremier = f.seinGauche ? "gauche" : "droite";
-    setForm({ date: f.date || todayStr(), time: f.time, durationH: dH, durationM: dM, seinPremier, complMaternel: f.complMaternel !== undefined ? f.complMaternel : (f.complementType === "maternel" ? f.complement || "" : ""), complCommercial: f.complCommercial !== undefined ? f.complCommercial : (f.complementType === "commercial" ? f.complement || "" : ""), pipi: f.pipi, caca: f.caca, vitamineD: f.vitamineD || false, nombril: f.nombril || false, yeux: f.yeux || false, regurgi: f.regurgi || 0, note: f.note, horsSequence: f.horsSequence || false });
+    setForm({ date: f.date || todayStr(), time: f.time, durationH: dH, durationM: dM, seinPremier, complMaternel: f.complMaternel !== undefined ? f.complMaternel : (f.complementType === "maternel" ? f.complement || "" : ""), complCommercial: f.complCommercial !== undefined ? f.complCommercial : (f.complementType === "commercial" ? f.complement || "" : ""), pipi: f.pipi, caca: f.caca, vitamineD: f.vitamineD || false, nombril: f.nombril || false, yeux: f.yeux || false, regurgi: f.regurgi || 0, note: f.note, horsSequence: f.horsSequence || false, horsSequenceNbBoire: f.horsSequenceNbBoire || false });
     setEditId(f.id); setShowForm(true);
   }
 
@@ -576,8 +576,14 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
               {form.horsSequence ? "🔀 Hors séquence — Timer non affecté" : "🔀 Hors séquence"}
             </button>
             {form.horsSequence && (
-              <div style={{ fontSize: 12, color: "#ff9800", marginTop: -10, marginBottom: 14, paddingLeft: 4 }}>
-                ⚠️ Ce boire ne relancera pas le timer du prochain boire.
+              <div style={{ marginTop: -10, marginBottom: 14 }}>
+                <div style={{ fontSize: 12, color: "#ff9800", marginBottom: 8, paddingLeft: 4 }}>
+                  ⚠️ Ce boire ne relancera pas le timer du prochain boire.
+                </div>
+                <button onClick={() => setForm(f => ({ ...f, horsSequenceNbBoire: !f.horsSequenceNbBoire }))}
+                  style={{ width: "100%", padding: "11px 0", borderRadius: 12, border: "2px solid", borderColor: form.horsSequenceNbBoire ? "#9c27b0" : (dark ? "#3a3a5e" : "#ddd"), background: form.horsSequenceNbBoire ? (dark ? "rgba(156,39,176,0.15)" : "#f3e5f5") : (dark ? "#1e1e30" : "#fafafa"), color: form.horsSequenceNbBoire ? "#9c27b0" : (dark ? "#555" : "#aaa"), fontWeight: "bold", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.15s" }}>
+                  {form.horsSequenceNbBoire ? "🚫 Ne compte pas dans les boires de la journée" : "🍼 Compter dans les boires de la journée"}
+                </button>
               </div>
             )}
             <Label dark={dark}>📝 Note</Label>
