@@ -22,6 +22,8 @@ export function JournalTab({
   setCoucheForm, setShowCoucheForm, setForm, setShowForm, setEditId, initialForm,
   // Theme
   dark, cardBg, textPrimary, textSecondary, borderColor,
+  // Tire-lait
+  tireLait = [],
 }) {
   const tCol = dark ? "#aaa" : "#888";
   const colorMat = dark ? "#f48fb1" : "#c2185b";
@@ -53,17 +55,25 @@ export function JournalTab({
   })();
 
   const getMl = f => {
-    const mat = (parseFloat(f.complMaternel) || 0) + ((f.complementType === "maternel") ? (parseFloat(f.complement) || 0) : 0);
-    const comm = (parseFloat(f.complCommercial) || 0) + ((f.complementType === "commercial") ? (parseFloat(f.complement) || 0) : 0);
+    const matOffert = (parseFloat(f.complMaternel) || 0) + ((f.complementType === "maternel") ? (parseFloat(f.complement) || 0) : 0);
+    const commOffert = (parseFloat(f.complCommercial) || 0) + ((f.complementType === "commercial") ? (parseFloat(f.complement) || 0) : 0);
+    const mat = f.complMaternelBu !== undefined && f.complMaternelBu !== "" ? (parseFloat(f.complMaternelBu) || 0) : matOffert;
+    const comm = f.complCommercialBu !== undefined && f.complCommercialBu !== "" ? (parseFloat(f.complCommercialBu) || 0) : commOffert;
     return { mat, comm, total: mat + comm };
   };
+
+  const tireLaitByDay = tireLait.reduce((acc, e) => {
+    acc[e.date] = (acc[e.date] || 0) + (parseFloat(e.quantite) || 0);
+    return acc;
+  }, {});
 
   const jDataMois = jDaysInMonth.map(date => {
     const entries = jGrouped[date] || [];
     const mat = entries.reduce((s, f) => s + getMl(f).mat, 0);
     const comm = entries.reduce((s, f) => s + getMl(f).comm, 0);
-    return { label: date.slice(8), mat, comm, val: mat + comm };
-  }).filter(d => d.val > 0);
+    const tire = tireLaitByDay[date] || 0;
+    return { label: date.slice(8), mat, comm, val: mat + comm, tire };
+  }).filter(d => d.val > 0 || d.tire > 0);
 
   const jDataJour = (jGrouped[jValidDay] || []).map(f => {
     const { mat, comm, total } = getMl(f);
@@ -84,7 +94,7 @@ export function JournalTab({
   const jData = journalGraphMode === "mois" ? jDataMois : journalGraphMode === "jour" ? jDataJour : jDataAnnee;
   const jMax = Math.max(...jData.map(d => d.val), 1);
 
-  const W2 = 320, H2 = 140, pL = 40, pR = 8, pT = 14, pB = 26;
+  const W2 = 320, H2 = 160, pL = 40, pR = 8, pT = 14, pB = 26;
   const gW2 = W2 - pL - pR;
   const bW = n => Math.max(4, Math.min(24, gW2 / Math.max(n, 1) - 4));
   const bX = (i, n) => pL + (i / Math.max(n, 1)) * gW2 + (gW2 / Math.max(n, 1) - bW(n)) / 2;
@@ -208,7 +218,7 @@ export function JournalTab({
       {/* Journal graph */}
       <div style={{ padding: "0 16px", maxWidth: 480, margin: "0 auto 8px" }}>
         <div style={{ background: cardBg, borderRadius: 14, padding: 14, boxShadow: "0 2px 12px rgba(0,0,0,0.07)", marginTop: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 40, flexWrap: "wrap" }}>
             <div style={{ display: "flex", borderRadius: 20, border: `1.5px solid ${dark ? "#3a3a5e" : "#e8c5a8"}`, overflow: "hidden" }}>
               {[["mois", "📆 Mois"], ["jour", "📅 Jour"], ["annee", "📊 " + jYear]].map(([m, l], i) => (
                 <button key={m} onClick={() => setJournalGraphMode(m)} style={{ padding: "5px 10px", border: "none", borderLeft: i > 0 ? `1px solid ${dark ? "#3a3a5e" : "#e8c5a8"}` : "none", background: journalGraphMode === m ? (dark ? "rgba(232,144,106,0.25)" : "rgba(232,144,106,0.15)") : "transparent", color: journalGraphMode === m ? (dark ? "#f48fb1" : "#e8906a") : textSecondary, fontWeight: journalGraphMode === m ? "bold" : "normal", fontSize: 12, cursor: "pointer" }}>{l}</button>
@@ -234,13 +244,18 @@ export function JournalTab({
                 const gH2eff = H2 - pT - pB2eff;
                 const pY2 = v => pT + gH2eff - (v / jMax) * gH2eff;
                 return (<>
+                  <defs>
+                    <pattern id="hatch-tire" patternUnits="userSpaceOnUse" width={6} height={6} patternTransform="rotate(45)">
+                      <line x1={0} y1={0} x2={0} y2={6} stroke={dark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.2)"} strokeWidth={2} />
+                    </pattern>
+                  </defs>
                   {[0, Math.round(jMax / 2), Math.round(jMax)].map((v, i) => (
                     <g key={i}>
                       <line x1={pL} y1={pY2(v)} x2={W2 - pR} y2={pY2(v)} stroke={gridC} strokeWidth={1} />
                       <text x={pL - 4} y={pY2(v) + 4} textAnchor="end" fontSize={9} fill={tCol}>{v >= 1000 ? (v / 1000).toFixed(1) + "L" : v}</text>
                     </g>
                   ))}
-                  <text x={pL - 2} y={pT - 2} fontSize={9} fill={tCol}>ml</text>
+                  <text x={pL - 4} y={6} textAnchor="end" fontSize={9} fill={tCol}>ml</text>
                   {jData.map((d, i) => {
                     const x = bX(i, jData.length), w = bW(jData.length);
                     const h = Math.max(1, gH2eff - (pY2(d.val) - pT));
@@ -258,6 +273,10 @@ export function JournalTab({
                         </>) : (
                           <rect x={x} y={pY2(d.val)} width={w} height={h} fill={topColor} fillOpacity={0.8} rx={3} />
                         )}
+                        {journalGraphMode === "mois" && d.tire > 0 && (() => {
+                          const tireH = Math.max(1, gH2eff - (pY2(d.tire) - pT));
+                          return <rect x={x} y={pY2(d.tire)} width={w} height={tireH} fill="url(#hatch-tire)" rx={3} />;
+                        })()}
                         {rotL ? (
                           <text x={x + w / 2} y={labelY} textAnchor="end" fontSize={8} fill={tCol} transform={`rotate(-90,${x + w / 2},${labelY})`}>{d.label}</text>
                         ) : (
@@ -265,7 +284,7 @@ export function JournalTab({
                         )}
                         {d.val > 0 && (rotL ? (() => {
                           const cx2 = x + w / 2;
-                          const topY2 = pY2(d.val) - 10;
+                          const topY2 = pY2(d.val) - 16;
                           return <text transform={`translate(${cx2},${topY2}) rotate(-90)`} textAnchor="middle" dominantBaseline="middle" fontSize={8} fill={dark ? "#f48fb1" : "#c2185b"} fontWeight="bold">{fmtVal2(Math.round(d.val))}</text>;
                         })() : (
                           <text x={x + w / 2} y={pY2(d.val) - 4} textAnchor="middle" fontSize={8} fill={dark ? "#f48fb1" : "#c2185b"} fontWeight="bold">{fmtVal2(Math.round(d.val))}</text>
@@ -283,10 +302,11 @@ export function JournalTab({
           )}
 
           {/* Legend */}
-          <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 6, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: (journalGraphMode === "mois" || journalGraphMode === "annee") ? -40 : 6, flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: tCol }}><span style={{ width: 10, height: 10, borderRadius: 2, background: colorMat, display: "inline-block" }} /> Maternel</div>
             <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: tCol }}><span style={{ width: 10, height: 10, borderRadius: 2, background: colorComm, display: "inline-block" }} /> Commercial</div>
             <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: tCol }}><span style={{ width: 10, height: 10, borderRadius: 2, background: colorSolo, display: "inline-block" }} /> Sein seul</div>
+            {journalGraphMode === "mois" && <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: tCol }}><svg width={10} height={10} style={{ display: "inline-block", flexShrink: 0 }}><defs><pattern id="hatch-legend" patternUnits="userSpaceOnUse" width={4} height={4} patternTransform="rotate(45)"><line x1={0} y1={0} x2={0} y2={4} stroke={dark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.35)"} strokeWidth={1.5} /></pattern></defs><rect width={10} height={10} rx={2} fill="url(#hatch-legend)" /></svg> Tiré</div>}
           </div>
         </div>
       </div>

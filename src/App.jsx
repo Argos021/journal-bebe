@@ -15,7 +15,7 @@ import { SanteTab, daysUntil, calendarDaysUntil } from "./components/SanteTab.js
 
 const initialForm = {
   date: todayStr(), time: getNow(), durationH: 3, durationM: 0,
-  seinPremier: null, complMaternel: "", complCommercial: "", pipi: false, caca: false,
+  seinPremier: null, complMaternel: "", complCommercial: "", complMaternelBu: "", complCommercialBu: "", pipi: false, caca: false,
   vitamineD: false, nombril: false, yeux: false, regurgi: 0, note: "", horsSequence: false, horsSequenceNbBoire: false,
 };
 
@@ -179,7 +179,7 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
     if (f.duration && f.durationH === undefined) { const t = parseInt(f.duration) || 0; dH = Math.floor(t / 60); dM = t % 60; }
     let seinPremier = f.seinPremier !== undefined ? f.seinPremier : null;
     if (seinPremier === null && (f.seinGauche || f.seinDroit)) seinPremier = f.seinGauche ? "gauche" : "droite";
-    setForm({ date: f.date || todayStr(), time: f.time, durationH: dH, durationM: dM, seinPremier, complMaternel: f.complMaternel !== undefined ? f.complMaternel : (f.complementType === "maternel" ? f.complement || "" : ""), complCommercial: f.complCommercial !== undefined ? f.complCommercial : (f.complementType === "commercial" ? f.complement || "" : ""), pipi: f.pipi, caca: f.caca, vitamineD: f.vitamineD || false, nombril: f.nombril || false, yeux: f.yeux || false, regurgi: f.regurgi || 0, note: f.note, horsSequence: f.horsSequence || false, horsSequenceNbBoire: f.horsSequenceNbBoire || false });
+    setForm({ date: f.date || todayStr(), time: f.time, durationH: dH, durationM: dM, seinPremier, complMaternel: f.complMaternel !== undefined ? f.complMaternel : (f.complementType === "maternel" ? f.complement || "" : ""), complCommercial: f.complCommercial !== undefined ? f.complCommercial : (f.complementType === "commercial" ? f.complement || "" : ""), complMaternelBu: f.complMaternelBu !== undefined ? f.complMaternelBu : "", complCommercialBu: f.complCommercialBu !== undefined ? f.complCommercialBu : "", pipi: f.pipi, caca: f.caca, vitamineD: f.vitamineD || false, nombril: f.nombril || false, yeux: f.yeux || false, regurgi: f.regurgi || 0, note: f.note, horsSequence: f.horsSequence || false, horsSequenceNbBoire: f.horsSequenceNbBoire || false });
     setEditId(f.id); setShowForm(true);
   }
 
@@ -248,6 +248,9 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
   }
 
   const durationTotalMins = (parseInt(form.durationH) || 0) * 60 + (parseInt(form.durationM) || 0);
+  const totalOffert = (parseFloat(form.complMaternel) || 0) + (parseFloat(form.complCommercial) || 0);
+  const totalBuForm = (parseFloat(form.complMaternelBu) || 0) + (parseFloat(form.complCommercialBu) || 0);
+  const gaspille = totalOffert - totalBuForm;
 
   if (loading) return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg,#f5c6a0,#f9a8c0)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
@@ -375,6 +378,7 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
           handleEdit={handleEdit} handleDelete={handleDelete} handleEditCouche={handleEditCouche}
           setCoucheForm={setCoucheForm} setShowCoucheForm={setShowCoucheForm} setForm={setForm} setShowForm={setShowForm} setEditId={setEditId} initialForm={initialForm}
           dark={dark} cardBg={cardBg} textPrimary={textPrimary} textSecondary={textSecondary} borderColor={borderColor}
+          tireLait={tireLait}
         />
       )}
 
@@ -537,6 +541,7 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
             {form.seinPremier && <div style={{ fontSize: 12, color: textSecondary, marginBottom: 14, paddingLeft: 4 }}>Départ : <strong>{form.seinPremier}</strong> → suite : <strong>{form.seinPremier === "gauche" ? "droite" : "gauche"}</strong></div>}
             {!form.seinPremier && <div style={{ marginBottom: 14 }} />}
             <Label dark={dark}>🥛 Complément de lait</Label>
+            <div style={{ fontSize: 11, fontWeight: "bold", color: textSecondary, marginBottom: 6, paddingLeft: 2 }}>Offert</div>
             <div style={{ display: "flex", gap: 10, marginBottom: 6 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 11, fontWeight: "bold", color: "#c2185b", marginBottom: 4 }}>🤱 Maternel (ml)</div>
@@ -547,8 +552,25 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
                 <input type="number" min="0" placeholder="ex: 30" value={form.complCommercial} onChange={e => setForm(f => ({ ...f, complCommercial: e.target.value }))} style={{ ...dynInputStyle, borderColor: "#bbdefb", marginBottom: 0 }} />
               </div>
             </div>
-            {(parseFloat(form.complMaternel) || 0) + (parseFloat(form.complCommercial) || 0) > 0 && <div style={{ fontSize: 12, color: textSecondary, marginBottom: 14, paddingLeft: 2 }}>Total : <strong>{((parseFloat(form.complMaternel) || 0) + (parseFloat(form.complCommercial) || 0)).toFixed(0)} ml</strong></div>}
-            {!(parseFloat(form.complMaternel) || 0) && !(parseFloat(form.complCommercial) || 0) && <div style={{ marginBottom: 14 }} />}
+            {totalOffert > 0 && <div style={{ fontSize: 12, color: textSecondary, marginBottom: 10, paddingLeft: 2 }}>Total offert : <strong>{totalOffert.toFixed(0)} ml</strong></div>}
+            <div style={{ fontSize: 11, fontWeight: "bold", color: "#2e7d32", margin: "6px 0 6px", paddingLeft: 2 }}>🍼 Réellement bu (ml)</div>
+            <div style={{ display: "flex", gap: 10, marginBottom: 6 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, fontWeight: "bold", color: "#c2185b", marginBottom: 4 }}>🤱 Maternel bu</div>
+                <input type="number" min="0" placeholder="ex: 25" value={form.complMaternelBu} onChange={e => setForm(f => ({ ...f, complMaternelBu: e.target.value }))} style={{ ...dynInputStyle, borderColor: "#a5d6a7", marginBottom: 0 }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, fontWeight: "bold", color: "#1565c0", marginBottom: 4 }}>🏭 Commercial bu</div>
+                <input type="number" min="0" placeholder="ex: 25" value={form.complCommercialBu} onChange={e => setForm(f => ({ ...f, complCommercialBu: e.target.value }))} style={{ ...dynInputStyle, borderColor: "#a5d6a7", marginBottom: 0 }} />
+              </div>
+            </div>
+            {(form.complMaternelBu !== "" || form.complCommercialBu !== "") && totalOffert > 0 ? (
+              gaspille >= 0 ? (
+                <div style={{ fontSize: 12, color: "#ff9800", fontWeight: "bold", marginBottom: 14, paddingLeft: 2 }}>♻️ Gaspillé : {gaspille.toFixed(0)} ml <span style={{ fontWeight: "normal", color: textSecondary }}>(offert {totalOffert.toFixed(0)} − bu {totalBuForm.toFixed(0)})</span></div>
+              ) : (
+                <div style={{ fontSize: 12, color: "#e53935", fontWeight: "bold", marginBottom: 14, paddingLeft: 2 }}>⚠️ Bu ({totalBuForm.toFixed(0)} ml) supérieur à l'offert ({totalOffert.toFixed(0)} ml)</div>
+              )
+            ) : <div style={{ marginBottom: 8 }} />}
             <Label dark={dark}>🧷 Couche</Label>
             <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
               <ToggleBtn active={form.pipi} onClick={() => setForm(f => ({ ...f, pipi: !f.pipi }))} label="💧 Pipi" color="#7eb8f5" dark={dark} />

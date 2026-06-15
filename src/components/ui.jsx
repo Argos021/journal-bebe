@@ -100,6 +100,9 @@ export function DaySummary({ entries, dark }) {
   }, 0).toFixed(2));
   const nbRegurgi = boires.reduce((s, e) => s + (parseInt(e.regurgi) || 0), 0);
   const totalMl = complMaternelle + complCommercial;
+  const totalMatBu = parseFloat(boires.reduce((s, e) => s + (parseFloat(e.complMaternelBu) || 0), 0).toFixed(2));
+  const totalCommBu = parseFloat(boires.reduce((s, e) => s + (parseFloat(e.complCommercialBu) || 0), 0).toFixed(2));
+  const totalBu = totalMatBu + totalCommBu;
   const items = [
     { icon: "🍼", label: "Boire" + (nbBoires > 1 ? "s" : ""), val: nbBoires, color: dark ? "#4a3020" : "#fdebd0", show: true },
     { icon: "💧", label: "Pipi", val: nbPipi, color: dark ? "#1a3050" : "#ddeeff", show: nbPipi > 0 },
@@ -109,7 +112,11 @@ export function DaySummary({ entries, dark }) {
     { icon: "👁️", label: "Yeux", val: nbYeux, color: dark ? "#2a1a3a" : "#f3e5f5", show: nbYeux > 0 },
     { icon: "🤱", label: "ml mat.", val: complMaternelle > 0 ? complMaternelle : null, color: dark ? "#3a1a2a" : "#f9c6d8", show: complMaternelle > 0 },
     { icon: "🏭", label: "ml comm.", val: complCommercial > 0 ? complCommercial : null, color: dark ? "#1a2a3a" : "#e3f2fd", show: complCommercial > 0 },
-    { icon: "🥛", label: "ml total", val: totalMl > 0 ? totalMl.toFixed(0) : null, color: dark ? "#2a2a2a" : "#f5f5f5", show: totalMl > 0 },
+    { icon: "🥛", label: "ml offert", val: totalMl > 0 ? totalMl.toFixed(0) : null, color: dark ? "#2a2a2a" : "#f5f5f5", show: totalMl > 0 },
+    { icon: "🤱", label: "ml mat. bu", val: totalMatBu > 0 ? totalMatBu.toFixed(0) : null, color: dark ? "#1a2a1a" : "#c8e6c9", show: totalMatBu > 0 },
+    { icon: "🏭", label: "ml comm. bu", val: totalCommBu > 0 ? totalCommBu.toFixed(0) : null, color: dark ? "#1a2030" : "#bbdefb", show: totalCommBu > 0 },
+    { icon: "🍼", label: "ml bu total", val: totalBu > 0 ? totalBu.toFixed(0) : null, color: dark ? "#1a3020" : "#c8e6c9", show: totalBu > 0 },
+    { icon: "♻️", label: "ml gaspillé", val: (totalMl > 0 && totalBu > 0) ? Math.max(0, totalMl - totalBu).toFixed(0) : null, color: dark ? "#2a1a00" : "#fff3e0", show: totalMl > 0 && totalBu > 0 && totalMl > totalBu },
   ];
   return (
     <div style={{ background: dark ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.7)", borderRadius: 12, padding: "10px 14px", marginTop: 8, marginBottom: 4 }}>

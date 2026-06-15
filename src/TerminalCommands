@@ -1,0 +1,7 @@
+Claude, ce document est juste un aide mémoire pour moi même, ne pas tenir compte
+
+GitHub
+    Push
+        git add -A
+        git commit -m "Update de l'app"
+        git push

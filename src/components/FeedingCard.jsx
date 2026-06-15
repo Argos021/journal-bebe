@@ -58,6 +58,8 @@ export function FeedingCard({ f, onEdit, onDelete, dark, cardBg, textPrimary, te
         {seinTag}
         {(parseFloat(f.complMaternel) || 0) > 0 && <Tag color="#f9c6d8" dark={dark}>🤱 {f.complMaternel} ml mat.</Tag>}
         {(parseFloat(f.complCommercial) || 0) > 0 && <Tag color="#d6eeff" dark={dark}>🏭 {f.complCommercial} ml comm.</Tag>}
+        {(parseFloat(f.complMaternelBu) || 0) > 0 && <Tag color="#c8e6c9" dark={dark}>🤱 {f.complMaternelBu} ml bu</Tag>}
+        {(parseFloat(f.complCommercialBu) || 0) > 0 && <Tag color="#c8e6c9" dark={dark}>🏭 {f.complCommercialBu} ml bu</Tag>}
         {/* Legacy fallback */}
         {!f.complMaternel && !f.complCommercial && f.complement && <Tag color={f.complementType === "maternel" ? "#f9c6d8" : "#d6eeff"} dark={dark}>{f.complementType === "maternel" ? "🤱" : "🥛"} {f.complement} ml</Tag>}
         {f.pipi && <Tag color="#ddeeff" dark={dark}>💧 Pipi</Tag>}
@@ -66,7 +68,7 @@ export function FeedingCard({ f, onEdit, onDelete, dark, cardBg, textPrimary, te
         {f.nombril && <Tag color="#e8f5e9" dark={dark}>🫧 Nombril</Tag>}
         {f.yeux && <Tag color="#f3e5f5" dark={dark}>👁️ Yeux</Tag>}
         {(parseInt(f.regurgi) || 0) > 0 && <Tag color="#fffde7" dark={dark}>🤮 {f.regurgi} régurgi{parseInt(f.regurgi) > 1 ? "s" : ""}</Tag>}
-        {!seinTag && !f.complement && !f.pipi && !f.caca && !f.vitamineD && !f.nombril && !f.yeux && !(parseInt(f.regurgi) || 0) && <span style={{ fontSize: 12, color: "#ccc" }}>Aucun détail</span>}
+        {!seinTag && !(parseFloat(f.complMaternel) || 0) && !(parseFloat(f.complCommercial) || 0) && !(parseFloat(f.complMaternelBu) || 0) && !(parseFloat(f.complCommercialBu) || 0) && !f.complement && !f.pipi && !f.caca && !f.vitamineD && !f.nombril && !f.yeux && !(parseInt(f.regurgi) || 0) && <span style={{ fontSize: 12, color: "#ccc" }}>Aucun détail</span>}
       </div>
       {f.note && <div style={{ marginTop: 6, fontSize: 13, color: "#8a6a5a", background: dark ? "#1a1a2e" : "#fdf6f0", borderRadius: 8, padding: "8px 10px", borderLeft: "3px solid #f5c6a0", fontStyle: "italic" }}>"{f.note}"</div>}
     </div>
