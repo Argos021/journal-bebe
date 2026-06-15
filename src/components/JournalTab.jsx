@@ -307,7 +307,7 @@ export function JournalTab({
                         )}
                         {d.val > 0 && (rotL ? (() => {
                           const cx2 = x + w / 2;
-                          const topY2 = pY2(d.val) - 16;
+                          const topY2 = pY2(journalGraphMode === "offert" ? Math.max(d.val, d.tire || 0) : d.val) - 16;
                           return <text transform={`translate(${cx2},${topY2}) rotate(-90)`} textAnchor="middle" dominantBaseline="middle" fontSize={8} fill={dark ? "#f48fb1" : "#c2185b"} fontWeight="bold">{fmtVal2(Math.round(d.val))}</text>;
                         })() : (
                           <text x={x + w / 2} y={pY2(d.val) - 4} textAnchor="middle" fontSize={8} fill={dark ? "#f48fb1" : "#c2185b"} fontWeight="bold">{fmtVal2(Math.round(d.val))}</text>
