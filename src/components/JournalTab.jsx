@@ -91,8 +91,22 @@ export function JournalTab({
     return { label, mat, comm, val: total };
   }).filter(d => d.val > 0);
 
-  const jData = journalGraphMode === "mois" ? jDataMois : journalGraphMode === "jour" ? jDataJour : jDataAnnee;
-  const jMax = Math.max(...jData.map(d => d.val), 1);
+  const getOffert = f => {
+    const mat = (parseFloat(f.complMaternel) || 0) + ((f.complementType === "maternel") ? (parseFloat(f.complement) || 0) : 0);
+    const comm = (parseFloat(f.complCommercial) || 0) + ((f.complementType === "commercial") ? (parseFloat(f.complement) || 0) : 0);
+    return { mat, comm, total: mat + comm };
+  };
+
+  const jDataOffert = jDaysInMonth.map(date => {
+    const entries = jGrouped[date] || [];
+    const mat = entries.reduce((s, f) => s + getOffert(f).mat, 0);
+    const comm = entries.reduce((s, f) => s + getOffert(f).comm, 0);
+    const tire = tireLaitByDay[date] || 0;
+    return { label: date.slice(8), mat, comm, val: mat + comm, tire };
+  }).filter(d => d.val > 0 || d.tire > 0);
+
+  const jData = journalGraphMode === "mois" ? jDataMois : journalGraphMode === "jour" ? jDataJour : journalGraphMode === "offert" ? jDataOffert : jDataAnnee;
+  const jMax = Math.max(...jData.map(d => Math.max(d.val, d.tire || 0)), 1);
 
   const W2 = 320, H2 = 160, pL = 40, pR = 8, pT = 14, pB = 26;
   const gW2 = W2 - pL - pR;
@@ -220,7 +234,7 @@ export function JournalTab({
         <div style={{ background: cardBg, borderRadius: 14, padding: 14, boxShadow: "0 2px 12px rgba(0,0,0,0.07)", marginTop: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 40, flexWrap: "wrap" }}>
             <div style={{ display: "flex", borderRadius: 20, border: `1.5px solid ${dark ? "#3a3a5e" : "#e8c5a8"}`, overflow: "hidden" }}>
-              {[["mois", "📆 Mois"], ["jour", "📅 Jour"], ["annee", "📊 " + jYear]].map(([m, l], i) => (
+              {[["mois", "📆 Mois"], ["jour", "📅 Jour"], ["annee", "📊 " + jYear], ["offert", "🆚 Offert VS Tiré"]].map(([m, l], i) => (
                 <button key={m} onClick={() => setJournalGraphMode(m)} style={{ padding: "5px 10px", border: "none", borderLeft: i > 0 ? `1px solid ${dark ? "#3a3a5e" : "#e8c5a8"}` : "none", background: journalGraphMode === m ? (dark ? "rgba(232,144,106,0.25)" : "rgba(232,144,106,0.15)") : "transparent", color: journalGraphMode === m ? (dark ? "#f48fb1" : "#e8906a") : textSecondary, fontWeight: journalGraphMode === m ? "bold" : "normal", fontSize: 12, cursor: "pointer" }}>{l}</button>
               ))}
             </div>
@@ -237,9 +251,9 @@ export function JournalTab({
           </div>
 
           {jData.length > 0 ? (
-            <svg width={W2} height={journalGraphMode === "mois" || journalGraphMode === "annee" ? H2 + 20 : H2} style={{ display: "block", margin: "0 auto", overflow: "visible" }}>
+            <svg width={W2} height={journalGraphMode === "mois" || journalGraphMode === "annee" || journalGraphMode === "offert" ? H2 + 20 : H2} style={{ display: "block", margin: "0 auto", overflow: "visible" }}>
               {(() => {
-                const rotL = journalGraphMode === "mois" || journalGraphMode === "annee";
+                const rotL = journalGraphMode === "mois" || journalGraphMode === "annee" || journalGraphMode === "offert";
                 const pB2eff = rotL ? 48 : pB;
                 const gH2eff = H2 - pT - pB2eff;
                 const pY2 = v => pT + gH2eff - (v / jMax) * gH2eff;
@@ -256,6 +270,7 @@ export function JournalTab({
                     </g>
                   ))}
                   <text x={pL - 4} y={6} textAnchor="end" fontSize={9} fill={tCol}>ml</text>
+                  {/* Passe 1 : toutes les barres */}
                   {jData.map((d, i) => {
                     const x = bX(i, jData.length), w = bW(jData.length);
                     const h = Math.max(1, gH2eff - (pY2(d.val) - pT));
@@ -263,8 +278,6 @@ export function JournalTab({
                     const matH = d.val > 0 ? Math.round(h * (d.mat / d.val)) : 0;
                     const commH = h - matH;
                     const topColor = hasMat ? colorMat : hasComm ? colorComm : colorSolo;
-                    const fmtVal2 = v => v >= 1000 ? (v / 1000).toFixed(2) + "L" : v + "";
-                    const labelY = pT + gH2eff + 6;
                     return (
                       <g key={i}>
                         {hasMat && hasComm ? (<>
@@ -273,10 +286,20 @@ export function JournalTab({
                         </>) : (
                           <rect x={x} y={pY2(d.val)} width={w} height={h} fill={topColor} fillOpacity={0.8} rx={3} />
                         )}
-                        {journalGraphMode === "mois" && d.tire > 0 && (() => {
+                        {journalGraphMode === "offert" && d.tire > 0 && (() => {
                           const tireH = Math.max(1, gH2eff - (pY2(d.tire) - pT));
                           return <rect x={x} y={pY2(d.tire)} width={w} height={tireH} fill="url(#hatch-tire)" rx={3} />;
                         })()}
+                      </g>
+                    );
+                  })}
+                  {/* Passe 2 : tous les textes par-dessus */}
+                  {jData.map((d, i) => {
+                    const x = bX(i, jData.length), w = bW(jData.length);
+                    const fmtVal2 = v => v >= 1000 ? (v / 1000).toFixed(2) + "L" : v + "";
+                    const labelY = pT + gH2eff + 6;
+                    return (
+                      <g key={"lbl-" + i}>
                         {rotL ? (
                           <text x={x + w / 2} y={labelY} textAnchor="end" fontSize={8} fill={tCol} transform={`rotate(-90,${x + w / 2},${labelY})`}>{d.label}</text>
                         ) : (
@@ -297,16 +320,16 @@ export function JournalTab({
             </svg>
           ) : (
             <div style={{ textAlign: "center", color: "#aaa", fontSize: 12, padding: "16px 0" }}>
-              {journalGraphMode === "jour" ? "Aucun ml enregistré ce jour" : journalGraphMode === "annee" ? `Aucune donnée pour ${jYear}` : "Aucun ml enregistré ce mois"}
+              {journalGraphMode === "jour" ? "Aucun ml enregistré ce jour" : journalGraphMode === "annee" ? `Aucune donnée pour ${jYear}` : journalGraphMode === "offert" ? "Aucune donnée offert/tiré ce mois" : "Aucun ml enregistré ce mois"}
             </div>
           )}
 
           {/* Legend */}
-          <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: (journalGraphMode === "mois" || journalGraphMode === "annee") ? -40 : 6, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: (journalGraphMode === "mois" || journalGraphMode === "annee" || journalGraphMode === "offert") ? -40 : 6, flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: tCol }}><span style={{ width: 10, height: 10, borderRadius: 2, background: colorMat, display: "inline-block" }} /> Maternel</div>
             <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: tCol }}><span style={{ width: 10, height: 10, borderRadius: 2, background: colorComm, display: "inline-block" }} /> Commercial</div>
             <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: tCol }}><span style={{ width: 10, height: 10, borderRadius: 2, background: colorSolo, display: "inline-block" }} /> Sein seul</div>
-            {journalGraphMode === "mois" && <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: tCol }}><svg width={10} height={10} style={{ display: "inline-block", flexShrink: 0 }}><defs><pattern id="hatch-legend" patternUnits="userSpaceOnUse" width={4} height={4} patternTransform="rotate(45)"><line x1={0} y1={0} x2={0} y2={4} stroke={dark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.35)"} strokeWidth={1.5} /></pattern></defs><rect width={10} height={10} rx={2} fill="url(#hatch-legend)" /></svg> Tiré</div>}
+            {journalGraphMode === "offert" && <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: tCol }}><svg width={10} height={10} style={{ display: "inline-block", flexShrink: 0 }}><defs><pattern id="hatch-legend" patternUnits="userSpaceOnUse" width={4} height={4} patternTransform="rotate(45)"><line x1={0} y1={0} x2={0} y2={4} stroke={dark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.35)"} strokeWidth={1.5} /></pattern></defs><rect width={10} height={10} rx={2} fill="url(#hatch-legend)" /></svg> Tiré</div>}
           </div>
         </div>
       </div>
