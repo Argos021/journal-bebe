@@ -118,7 +118,7 @@ export function TireLaitTab({ tireLait, dark, cardBg, textPrimary, textSecondary
     : graphDataAnnee.filter(d => d.val > 0);
   const maxVal = Math.max(...graphData.map(d => d.val), 1);
   const textCol = dark ? "#aaa" : "#888";
-  const W = 320, H = 130, padL = 40, padR = 8, padT = 12, padB = 24;
+  const W = 320, H = 160, padL = 40, padR = 8, padT = 14, padB = 26;
   const gW = W - padL - padR, gH = H - padT - padB;
   const pxBar = (i, n) => padL + (i / n) * gW + (gW / n - Math.max(4, Math.min(22, gW / n - 4))) / 2;
   const barW = (n) => Math.max(4, Math.min(22, gW / n - 4));
@@ -179,7 +179,7 @@ export function TireLaitTab({ tireLait, dark, cardBg, textPrimary, textSecondary
 
       {/* Graph */}
       <div style={{ background: cardBg, borderRadius: 14, padding: 14, marginBottom: 14, boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 40, flexWrap: "wrap" }}>
           <div style={{ display: "flex", borderRadius: 20, border: `1.5px solid ${dark ? "#3a3a5e" : "#e8c5a8"}`, overflow: "hidden" }}>
             {[["mois", "📆 Mois"], ["jour", "📅 Jour"], ["annee", "📊 " + graphYear]].map(([m, l], i) => (
               <button key={m} onClick={() => setGraphMode(m)} style={{ padding: "5px 10px", border: "none", borderLeft: i > 0 ? `1px solid ${dark ? "#3a3a5e" : "#e8c5a8"}` : "none", background: graphMode === m ? (dark ? "rgba(66,165,245,0.25)" : "#e3f2fd") : "transparent", color: graphMode === m ? "#1565c0" : textSecondary, fontWeight: graphMode === m ? "bold" : "normal", fontSize: 12, cursor: "pointer" }}>{l}</button>
@@ -199,18 +199,18 @@ export function TireLaitTab({ tireLait, dark, cardBg, textPrimary, textSecondary
         {graphData.length > 0 ? (() => {
           const fmtV = v => v >= 1000 ? (v / 1000).toFixed(2) + "L" : v + "";
           const rotateLabels = graphMode === "mois" || graphMode === "annee";
-          const padBeff = rotateLabels ? 48 : padB;
+          const padBeff = padB;
           const gHeff = H - padT - padBeff;
           const pyR = v => padT + gHeff - (v / maxVal) * gHeff;
           return (
-            <svg width={W} height={rotateLabels ? H + 20 : H} style={{ display: "block", margin: "0 auto", overflow: "visible" }}>
+            <svg width={W} height={H} style={{ display: "block", margin: "0 auto", overflow: "visible" }}>
               {[0, Math.round(maxVal / 2), Math.round(maxVal)].map((v, i) => (
                 <g key={i}>
                   <line x1={padL} y1={pyR(v)} x2={W - padR} y2={pyR(v)} stroke={gridCol} strokeWidth={1} />
                   <text x={padL - 4} y={pyR(v) + 4} textAnchor="end" fontSize={9} fill={textCol}>{v >= 1000 ? (v / 1000).toFixed(1) + "L" : v}</text>
                 </g>
               ))}
-              <text x={padL - 2} y={padT - 2} fontSize={9} fill={textCol}>ml</text>
+              <text x={padL - 4} y={6} textAnchor="end" fontSize={9} fill={textCol}>ml</text>
               {graphData.map((d, i) => (
                 <g key={i}>
                   <rect x={pxBar(i, graphData.length)} y={pyR(d.val)} width={barW(graphData.length)} height={Math.max(1, gHeff - (pyR(d.val) - padT))} fill={dark ? "#42a5f5" : "#1565c0"} fillOpacity={0.75} rx={3} />
@@ -219,15 +219,15 @@ export function TireLaitTab({ tireLait, dark, cardBg, textPrimary, textSecondary
                   ) : (
                     <text x={pxBar(i, graphData.length) + barW(graphData.length) / 2} y={H - 4} textAnchor="middle" fontSize={8} fill={textCol}>{d.label}</text>
                   )}
-                  {d.val > 0 && (rotateLabels ? (() => {
-                    const cx = pxBar(i, graphData.length) + barW(graphData.length) / 2;
-                    const topY = pyR(d.val) - 10;
-                    return <text transform={`translate(${cx},${topY}) rotate(-90)`} textAnchor="middle" dominantBaseline="middle" fontSize={8} fill={dark ? "#90caf9" : "#1565c0"} fontWeight="bold">{fmtV(Math.round(d.val))}</text>;
-                  })() : (
-                    <text x={pxBar(i, graphData.length) + barW(graphData.length) / 2} y={pyR(d.val) - 4} textAnchor="middle" fontSize={8} fill={dark ? "#90caf9" : "#1565c0"} fontWeight="bold">{fmtV(Math.round(d.val))}</text>
-                  ))}
                 </g>
               ))}
+              {graphData.map((d, i) => d.val > 0 && (rotateLabels ? (() => {
+                const cx = pxBar(i, graphData.length) + barW(graphData.length) / 2;
+                const topY = pyR(d.val) - 16;
+                return <text key={"lbl-" + i} transform={`translate(${cx},${topY}) rotate(-90)`} textAnchor="middle" dominantBaseline="middle" fontSize={8} fill={dark ? "#90caf9" : "#1565c0"} fontWeight="bold">{fmtV(Math.round(d.val))}</text>;
+              })() : (
+                <text key={"lbl-" + i} x={pxBar(i, graphData.length) + barW(graphData.length) / 2} y={pyR(d.val) - 4} textAnchor="middle" fontSize={8} fill={dark ? "#90caf9" : "#1565c0"} fontWeight="bold">{fmtV(Math.round(d.val))}</text>
+              )))}
             </svg>
           );
         })() : (

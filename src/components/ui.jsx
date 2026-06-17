@@ -112,10 +112,10 @@ export function DaySummary({ entries, dark }) {
     { icon: "👁️", label: "Yeux", val: nbYeux, color: dark ? "#2a1a3a" : "#f3e5f5", show: nbYeux > 0 },
     { icon: "🤱", label: "ml mat.", val: complMaternelle > 0 ? complMaternelle : null, color: dark ? "#3a1a2a" : "#f9c6d8", show: complMaternelle > 0 },
     { icon: "🏭", label: "ml comm.", val: complCommercial > 0 ? complCommercial : null, color: dark ? "#1a2a3a" : "#e3f2fd", show: complCommercial > 0 },
-    { icon: "🥛", label: "ml offert", val: totalMl > 0 ? totalMl.toFixed(0) : null, color: dark ? "#2a2a2a" : "#f5f5f5", show: totalMl > 0 },
+    { icon: "🥛", label: "ml offert", val: totalMl > 0 ? totalMl.toFixed(0) : null, color: dark ? "#2a2a2a" : "#f5f5f5", show: complMaternelle > 0 && complCommercial > 0 },
     { icon: "🤱", label: "ml mat. bu", val: totalMatBu > 0 ? totalMatBu.toFixed(0) : null, color: dark ? "#1a2a1a" : "#c8e6c9", show: totalMatBu > 0 },
     { icon: "🏭", label: "ml comm. bu", val: totalCommBu > 0 ? totalCommBu.toFixed(0) : null, color: dark ? "#1a2030" : "#bbdefb", show: totalCommBu > 0 },
-    { icon: "🍼", label: "ml bu total", val: totalBu > 0 ? totalBu.toFixed(0) : null, color: dark ? "#1a3020" : "#c8e6c9", show: totalBu > 0 },
+    { icon: "🍼", label: "ml bu total", val: totalBu > 0 ? totalBu.toFixed(0) : null, color: dark ? "#1a3020" : "#c8e6c9", show: totalMatBu > 0 && totalCommBu > 0 },
     { icon: "♻️", label: "ml gaspillé", val: (totalMl > 0 && totalBu > 0) ? Math.max(0, totalMl - totalBu).toFixed(0) : null, color: dark ? "#2a1a00" : "#fff3e0", show: totalMl > 0 && totalBu > 0 && totalMl > totalBu },
   ];
   return (
