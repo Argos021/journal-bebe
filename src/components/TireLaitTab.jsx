@@ -1,16 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 import { db } from "../firebase.js";
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
-import { todayStr, getNow, formatDate } from "../helpers.js";
-import { btnPrimaryBase, btnSecondaryBase } from "../constants.js";
+import { todayStr, getNow, formatDate, getNextFeedingTime } from "../helpers.js";
+import { btnPrimaryBase, btnSecondaryBase, HOURS_OPTIONS, MINUTES_OPTIONS } from "../constants.js";
 import { Label } from "./ui.jsx";
 
 // ── TireLaitTab ───────────────────────────────────────────────────────────────
 
+const emptyForm = () => ({ date: todayStr(), time: getNow(), durationH: 3, durationM: 0, quantite: "", note: "" });
+
 export function TireLaitTab({ tireLait, dark, cardBg, textPrimary, textSecondary, dynInputStyle, borderColor, setConfirmDelete, showToast, onFormOpen, onFormClose }) {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ date: todayStr(), time: getNow(), quantite: "", note: "" });
+  const [form, setForm] = useState(emptyForm);
   const [showStats, setShowStats] = useState(false);
   const [viewMode, setViewMode] = useState("auto");
   const [collapsedDays, setCollapsedDays] = useState({});
@@ -71,11 +73,13 @@ export function TireLaitTab({ tireLait, dark, cardBg, textPrimary, textSecondary
     const id = editId || String(Date.now());
     await setDoc(doc(db, "tireLait", id), { ...form });
     showToast(editId ? "✏️ Session modifiée !" : "🍼 Session ajoutée !");
-    setForm({ date: todayStr(), time: getNow(), quantite: "", note: "" });
+    setForm(emptyForm());
     setEditId(null); setShowForm(false); onFormClose?.();
   }
-  function handleEdit(e) { setForm({ date: e.date, time: e.time, quantite: e.quantite, note: e.note || "" }); setEditId(e.id); setShowForm(true); onFormOpen?.(); }
+  function handleEdit(e) { setForm({ date: e.date, time: e.time, durationH: e.durationH ?? 3, durationM: e.durationM ?? 0, quantite: e.quantite, note: e.note || "" }); setEditId(e.id); setShowForm(true); onFormOpen?.(); }
   function handleDelete(id) { setConfirmDelete({ message: "Supprimer cette session ?", onConfirm: () => { deleteDoc(doc(db, "tireLait", id)); showToast("🗑️ Supprimé", "#e8906a"); } }); }
+
+  const formDurationMins = (parseInt(form.durationH) || 0) * 60 + (parseInt(form.durationM) || 0);
 
   const monthE = tireLait.filter(e => e.date.startsWith(selectedMonth));
   const monthDays = [...new Set(monthE.map(e => e.date))].length;
@@ -138,7 +142,7 @@ export function TireLaitTab({ tireLait, dark, cardBg, textPrimary, textSecondary
               <button key={m} onClick={() => setVM(m)} style={{ padding: "7px 10px", border: "none", borderLeft: idx > 0 ? `1px solid ${dark ? "#3a3a5e" : "#e8c5a8"}` : "none", background: viewMode === m ? (dark ? "rgba(244,143,177,0.25)" : "rgba(232,144,106,0.18)") : "transparent", color: viewMode === m ? (dark ? "#f48fb1" : "#e8906a") : textSecondary, fontWeight: viewMode === m ? "bold" : "normal", fontSize: 13, cursor: "pointer" }}>{i}</button>
             ))}
           </div>
-          <button onClick={() => { setForm({ date: todayStr(), time: getNow(), quantite: "", note: "" }); setEditId(null); setShowForm(true); onFormOpen?.(); }} style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: "linear-gradient(135deg,#1565c0,#42a5f5)", color: "white", fontSize: 24, fontWeight: "bold", cursor: "pointer", boxShadow: "0 4px 12px rgba(21,101,192,0.4)", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+          <button onClick={() => { setForm(emptyForm()); setEditId(null); setShowForm(true); onFormOpen?.(); }} style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: "linear-gradient(135deg,#1565c0,#42a5f5)", color: "white", fontSize: 24, fontWeight: "bold", cursor: "pointer", boxShadow: "0 4px 12px rgba(21,101,192,0.4)", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
         </div>
       </div>
 
@@ -264,6 +268,11 @@ export function TireLaitTab({ tireLait, dark, cardBg, textPrimary, textSecondary
                     <span style={{ fontSize: 16, fontWeight: "bold", color: textPrimary }}>{e.time}</span>
                     <span style={{ background: dark ? "#1a2a3a" : "#e3f2fd", borderRadius: 20, padding: "2px 10px", fontSize: 13, color: dark ? "#90caf9" : "#1565c0", fontWeight: "bold" }}>🍼 {e.quantite} ml</span>
                   </div>
+                  {(() => {
+                    // Anciennes sessions sans durée → 3h par défaut
+                    const next = getNextFeedingTime(e.time, e.durationH === undefined ? 180 : (parseInt(e.durationH) || 0) * 60 + (parseInt(e.durationM) || 0));
+                    return next && <div style={{ fontSize: 12, color: dark ? "#90caf9" : "#1565c0", marginBottom: 4, fontWeight: "bold" }}>⏰ Prochaine session vers {next}</div>;
+                  })()}
                   {e.note && <div style={{ fontSize: 12, color: "#8a6a5a", fontStyle: "italic" }}>"{e.note}"</div>}
                 </div>
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
@@ -285,12 +294,22 @@ export function TireLaitTab({ tireLait, dark, cardBg, textPrimary, textSecondary
             <input type="date" value={form.date} max={todayStr()} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} style={dynInputStyle} />
             <Label dark={dark}>🕐 Heure</Label>
             <input type="time" value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))} style={dynInputStyle} />
+            <Label dark={dark}>⏱ Durée avant la prochaine session</Label>
+            <div style={{ display: "flex", gap: 10, marginBottom: 6 }}>
+              <select value={form.durationH} onChange={e => setForm(f => ({ ...f, durationH: parseInt(e.target.value) }))} style={{ ...dynInputStyle, flex: 1 }}>
+                {HOURS_OPTIONS.map(h => <option key={h} value={h}>{h}h</option>)}
+              </select>
+              <select value={form.durationM} onChange={e => setForm(f => ({ ...f, durationM: parseInt(e.target.value) }))} style={{ ...dynInputStyle, flex: 1 }}>
+                {MINUTES_OPTIONS.map(m => <option key={m} value={m}>{String(m).padStart(2, "0")} min</option>)}
+              </select>
+            </div>
+            {formDurationMins > 0 && <div style={{ marginTop: -8, marginBottom: 12, fontSize: 13, color: textSecondary, paddingLeft: 4 }}>➜ Prochaine session vers <strong>{getNextFeedingTime(form.time, formDurationMins)}</strong></div>}
             <Label dark={dark}>🍼 Quantité (ml)</Label>
             <input type="number" min="0" step="1" placeholder="ex: 80" value={form.quantite} onChange={e => setForm(f => ({ ...f, quantite: e.target.value }))} style={dynInputStyle} />
             <Label dark={dark}>📝 Note (optionnel)</Label>
             <textarea placeholder="Observations..." value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} rows={2} style={{ ...dynInputStyle, resize: "vertical", minHeight: 60 }} />
             <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-              <button onClick={() => { setShowForm(false); setEditId(null); setForm({ date: todayStr(), time: getNow(), quantite: "", note: "" }); onFormClose?.(); }} style={btnSecondaryBase}>Annuler</button>
+              <button onClick={() => { setShowForm(false); setEditId(null); setForm(emptyForm()); onFormClose?.(); }} style={btnSecondaryBase}>Annuler</button>
               <button onClick={handleSubmit} style={btnPrimaryBase}>{editId ? "Enregistrer" : "Ajouter"}</button>
             </div>
           </div>

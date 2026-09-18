@@ -107,10 +107,7 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
   const [growthEditId, setGrowthEditId] = useState(null);
   const [growthInputUnit, setGrowthInputUnit] = useState("g");
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [timerRunning, setTimerRunning] = useState(false);
-  const [timerSeconds, setTimerSeconds] = useState(0);
   const [headerCompact, setHeaderCompact] = useState(false);
-  const timerRef = useRef(null);
   const importRef = useRef();
 
   // Theme
@@ -139,13 +136,6 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
   function saveProfile(newProfile) { setProfile(newProfile); setDoc(doc(db, "config", "profile"), newProfile).catch(() => {}); }
   function saveSettings(newSettings) { setSettings(newSettings); setDoc(doc(db, "config", "settings"), newSettings).catch(() => {}); }
 
-  // Timer
-  useEffect(() => {
-    if (timerRunning) { timerRef.current = setInterval(() => setTimerSeconds(s => s + 1), 1000); }
-    else { clearInterval(timerRef.current); }
-    return () => clearInterval(timerRef.current);
-  }, [timerRunning]);
-
   function showToast(msg, color = "#4caf50") { setToast({ msg, color }); setTimeout(() => setToast(null), 3000); }
 
   // Month navigation
@@ -163,6 +153,11 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
   const lastFeeding = boireEntriesTimer.length > 0 ? boireEntriesTimer.reduce((latest, f) => ((f.date + "T" + f.time) > (latest.date + "T" + latest.time) ? f : latest)) : null;
   const lastFeedingAgo = lastFeeding ? timeSince(lastFeeding.date, lastFeeding.time) : null;
   const lastFeedingNext = lastFeeding ? (() => { const totalMins = (parseInt(lastFeeding.durationH) || 0) * 60 + (parseInt(lastFeeding.durationM) || 0) || (parseInt(lastFeeding.duration) || 0); return getNextFeedingTime(lastFeeding.time, totalMins); })() : null;
+
+  // Dernière session de tire-lait (anciennes sessions sans durée → 3h par défaut)
+  const lastTireLait = tireLait.length > 0 ? tireLait.reduce((latest, e) => ((e.date + "T" + e.time) > (latest.date + "T" + latest.time) ? e : latest)) : null;
+  const lastTireLaitAgo = lastTireLait ? timeSince(lastTireLait.date, lastTireLait.time) : null;
+  const lastTireLaitNext = lastTireLait ? getNextFeedingTime(lastTireLait.time, lastTireLait.durationH === undefined ? 180 : (parseInt(lastTireLait.durationH) || 0) * 60 + (parseInt(lastTireLait.durationM) || 0)) : null;
 
   // Handlers
   async function handleSubmit() {
@@ -281,10 +276,19 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
           </div>
 
           {headerCompact ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: textPrimary, paddingRight: 72, paddingBottom: 6 }}>
-              <span style={{ fontWeight: "bold" }}>🍼 {profile.nom || settings.babyName}</span>
-              {lastFeeding && <><span style={{ color: textSecondary }}>· {lastFeeding.time}</span>{lastFeedingAgo && <span style={{ color: textSecondary }}>({lastFeedingAgo})</span>}{lastFeedingNext && <span style={{ color: dark ? "#f48fb1" : "#e06b8a", fontWeight: "bold" }}>· ➜ {lastFeedingNext}</span>}</>}
-            </div>
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: textPrimary, paddingRight: 72, paddingBottom: 6 }}>
+                <span style={{ fontWeight: "bold" }}>🍼 {profile.nom || settings.babyName}</span>
+                {lastFeeding && <><span style={{ color: textSecondary }}>· {lastFeeding.time}</span>{lastFeedingAgo && <span style={{ color: textSecondary }}>({lastFeedingAgo})</span>}{lastFeedingNext && <span style={{ color: dark ? "#f48fb1" : "#e06b8a", fontWeight: "bold" }}>· ➜ {lastFeedingNext}</span>}</>}
+              </div>
+              {lastTireLait && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: textPrimary, paddingRight: 72, paddingBottom: 6, marginTop: -2 }}>
+                  <span style={{ fontWeight: "bold" }}>🫙 {lastTireLait.time}</span>
+                  {lastTireLaitAgo && <span style={{ color: textSecondary }}>({lastTireLaitAgo})</span>}
+                  {lastTireLaitNext && <span style={{ color: dark ? "#90caf9" : "#1565c0", fontWeight: "bold" }}>· ➜ {lastTireLaitNext}</span>}
+                </div>
+              )}
+            </>
           ) : (
             <div style={{ textAlign: "center", paddingRight: 72 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 2 }}>
@@ -314,13 +318,22 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
                   {lastFeedingNext && <span style={{ color: dark ? "#f48fb1" : "#e06b8a", fontWeight: "bold" }}>· prochain {lastFeedingNext}</span>}
                 </div>
               )}
+              {lastTireLait && (
+                <div>
+                  <div style={{ background: dark ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.6)", borderRadius: 10, padding: "6px 12px", marginBottom: 8, fontSize: 12, color: textPrimary, display: "inline-flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+                    <span style={{ fontWeight: "bold" }}>🫙 {lastTireLait.time}</span>
+                    {lastTireLaitAgo && <span style={{ color: textSecondary }}>· il y a {lastTireLaitAgo}</span>}
+                    {lastTireLaitNext && <span style={{ color: dark ? "#90caf9" : "#1565c0", fontWeight: "bold" }}>· prochain {lastTireLaitNext}</span>}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {/* Nav tabs */}
         <div style={{ display: "flex", borderTop: `1px solid ${dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}`, marginTop: 4 }}>
-          {[["profil", "👶"], ["journal", "📓"], ["tirelait", "🍼"], ["croissance", "📏"], ["sante", "🏥"]].map(([key, icon]) => {
+          {[["profil", "👶"], ["journal", "📓"], ["tirelait", "🫙"], ["croissance", "📏"], ["sante", "🏥"]].map(([key, icon]) => {
             const label = { profil: "Profil", journal: "Journal", tirelait: "Tire-Lait", croissance: "Croissance", sante: "Santé" }[key];
             const urgentAppts = appointments.filter(a => { if (a.done) return false; const elapsed = daysUntil(a.date, a.time); const calDays = calendarDaysUntil(a.date); return elapsed >= 0 && calDays <= 3; }).length;
             return (
@@ -374,7 +387,6 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
           viewMode={viewMode} setViewModeAndSave={setViewModeAndSave} isDayCollapsed={isDayCollapsed} toggleDayCollapse={toggleDayCollapse}
           showStats={showStats} setShowStats={setShowStats}
           journalGraphMode={journalGraphMode} setJournalGraphMode={setJournalGraphMode} journalGraphDay={journalGraphDay} setJournalGraphDay={setJournalGraphDay}
-          timerRunning={timerRunning} setTimerRunning={setTimerRunning} timerSeconds={timerSeconds} setTimerSeconds={setTimerSeconds}
           handleEdit={handleEdit} handleDelete={handleDelete} handleEditCouche={handleEditCouche}
           setCoucheForm={setCoucheForm} setShowCoucheForm={setShowCoucheForm} setForm={setForm} setShowForm={setShowForm} setEditId={setEditId} initialForm={initialForm}
           dark={dark} cardBg={cardBg} textPrimary={textPrimary} textSecondary={textSecondary} borderColor={borderColor}

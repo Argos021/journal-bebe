@@ -50,7 +50,7 @@ agressif ou clinique.**
 | 🫧 Nombril | vert `#2e7d32` / `#e8f5e9` |
 | 👁️ Yeux | violet `#6a1b9a` / `#f3e5f5` |
 | ☀️ Vitamine D | jaune `#ffe082` |
-| 🍼 Tire-Lait | bleu `#1565c0` / `#42a5f5` |
+| 🫙 Tire-Lait | bleu `#1565c0` / `#42a5f5` |
 | 📏 Croissance | Poids vert `#2e7d32` · Taille bleu `#1565c0` · Crâne violet `#6a1b9a` |
 | 🔀 Hors séquence | orange `#ff9800` |
 | 🚫 Exclusion du compteur | violet `#9c27b0` |

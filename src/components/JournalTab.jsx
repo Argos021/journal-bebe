@@ -15,8 +15,6 @@ export function JournalTab({
   showStats, setShowStats,
   // Graph
   journalGraphMode, setJournalGraphMode, journalGraphDay, setJournalGraphDay,
-  // Timer
-  timerRunning, setTimerRunning, timerSeconds, setTimerSeconds,
   // Actions
   handleEdit, handleDelete, handleEditCouche,
   setCoucheForm, setShowCoucheForm, setForm, setShowForm, setEditId, initialForm,
@@ -115,22 +113,6 @@ export function JournalTab({
 
   return (
     <div>
-      {/* Timer bar */}
-      <div style={{ background: dark ? "#2a2a3e" : "#fff8f0", padding: "12px 16px", borderBottom: `1px solid ${dark ? "#3a3a5e" : "#f0d5c0"}`, display: "flex", alignItems: "center", justifyContent: "space-between", maxWidth: 480, margin: "0 auto" }}>
-        <div>
-          <div style={{ fontSize: 12, color: textSecondary, fontWeight: "bold" }}>⏱ Minuterie boire</div>
-          <div style={{ fontSize: 26, fontWeight: "bold", color: timerRunning ? (dark ? "#f48fb1" : "#e06b8a") : textPrimary, letterSpacing: 2 }}>
-            {String(Math.floor(timerSeconds / 3600)).padStart(2, "0")}:{String(Math.floor((timerSeconds % 3600) / 60)).padStart(2, "0")}:{String(timerSeconds % 60).padStart(2, "0")}
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => setTimerRunning(v => !v)} style={{ padding: "8px 18px", borderRadius: 20, border: "none", background: timerRunning ? "#e06b8a" : "#e8906a", color: "white", fontWeight: "bold", fontSize: 14, cursor: "pointer" }}>
-            {timerRunning ? "⏸ Pause" : "▶ Démarrer"}
-          </button>
-          <button onClick={() => { setTimerRunning(false); setTimerSeconds(0); }} style={{ padding: "8px 12px", borderRadius: 20, border: `1.5px solid ${borderColor}`, background: "transparent", color: textSecondary, fontWeight: "bold", fontSize: 13, cursor: "pointer" }}>↺</button>
-        </div>
-      </div>
-
       {/* View toggle + add buttons */}
       <div style={{ padding: "14px 16px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, maxWidth: 480, margin: "0 auto" }}>
         <div style={{ display: "flex", gap: 8 }}>
