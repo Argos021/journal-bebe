@@ -333,7 +333,7 @@ export default function BabyTracker({ onRegisterShowBoire, onRegisterShowCouche,
 
         {/* Nav tabs */}
         <div style={{ display: "flex", borderTop: `1px solid ${dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}`, marginTop: 4 }}>
-          {[["profil", "👶"], ["journal", "📓"], ["tirelait", "🫙"], ["croissance", "📏"], ["sante", "🏥"]].map(([key, icon]) => {
+          {[["profil", "👶"], ["journal", "🍼"], ["tirelait", "🫙"], ["croissance", "📏"], ["sante", "🏥"]].map(([key, icon]) => {
             const label = { profil: "Profil", journal: "Journal", tirelait: "Tire-Lait", croissance: "Croissance", sante: "Santé" }[key];
             const urgentAppts = appointments.filter(a => { if (a.done) return false; const elapsed = daysUntil(a.date, a.time); const calDays = calendarDaysUntil(a.date); return elapsed >= 0 && calDays <= 3; }).length;
             return (

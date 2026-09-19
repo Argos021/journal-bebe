@@ -111,6 +111,20 @@ export function JournalTab({
   const bW = n => Math.max(4, Math.min(24, gW2 / Math.max(n, 1) - 4));
   const bX = (i, n) => pL + (i / Math.max(n, 1)) * gW2 + (gW2 / Math.max(n, 1) - bW(n)) / 2;
 
+  // Offert VS Tiré : les étiquettes « offert/tiré » montent au-dessus du SVG.
+  // On agrandit l'espace sous les boutons de mode si une étiquette risque de les toucher.
+  const graphTopSpace = (() => {
+    if (journalGraphMode !== "offert") return 40;
+    const fmt = v => v >= 1000 ? (v / 1000).toFixed(2) + "L" : String(v);
+    const gH = H2 - pT - 48;
+    const overflow = Math.max(0, ...jData.map(d => {
+      const labelLen = (fmt(Math.round(d.val)) + "/" + fmt(Math.round(d.tire || 0))).length * 5; // ~5 px/caractère (Georgia gras 8px)
+      const topY = pT + gH * (1 - Math.max(d.val, d.tire || 0) / jMax) - 4;
+      return labelLen - topY;
+    }));
+    return Math.max(40, Math.ceil(overflow) + 8);
+  })();
+
   return (
     <div>
       {/* View toggle + add buttons */}
@@ -214,7 +228,7 @@ export function JournalTab({
       {/* Journal graph */}
       <div style={{ padding: "0 16px", maxWidth: 480, margin: "0 auto 8px" }}>
         <div style={{ background: cardBg, borderRadius: 14, padding: 14, boxShadow: "0 2px 12px rgba(0,0,0,0.07)", marginTop: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 40, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: graphTopSpace, flexWrap: "wrap" }}>
             <div style={{ display: "flex", borderRadius: 20, border: `1.5px solid ${dark ? "#3a3a5e" : "#e8c5a8"}`, overflow: "hidden" }}>
               {[["mois", "📆 Mois"], ["jour", "📅 Jour"], ["annee", "📊 " + jYear], ["offert", "🆚 Offert VS Tiré"]].map(([m, l], i) => (
                 <button key={m} onClick={() => setJournalGraphMode(m)} style={{ padding: "5px 10px", border: "none", borderLeft: i > 0 ? `1px solid ${dark ? "#3a3a5e" : "#e8c5a8"}` : "none", background: journalGraphMode === m ? (dark ? "rgba(232,144,106,0.25)" : "rgba(232,144,106,0.15)") : "transparent", color: journalGraphMode === m ? (dark ? "#f48fb1" : "#e8906a") : textSecondary, fontWeight: journalGraphMode === m ? "bold" : "normal", fontSize: 12, cursor: "pointer" }}>{l}</button>
@@ -287,7 +301,18 @@ export function JournalTab({
                         ) : (
                           <text x={x + w / 2} y={H2 - 4} textAnchor="middle" fontSize={8} fill={tCol}>{d.label}</text>
                         )}
-                        {d.val > 0 && (rotL ? (() => {
+                        {journalGraphMode === "offert" ? ((d.val > 0 || d.tire > 0) && (() => {
+                          // Offert (rose) / Tiré (bleu tire-lait), écrit vers le haut à partir du sommet de la barre
+                          const cx2 = x + w / 2;
+                          const topY2 = pY2(Math.max(d.val, d.tire || 0)) - 4;
+                          return (
+                            <text transform={`translate(${cx2},${topY2}) rotate(-90)`} textAnchor="start" dominantBaseline="middle" fontSize={8} fontWeight="bold">
+                              <tspan fill={dark ? "#f48fb1" : "#c2185b"}>{fmtVal2(Math.round(d.val))}</tspan>
+                              <tspan fill={tCol}>/</tspan>
+                              <tspan fill={dark ? "#90caf9" : "#1565c0"}>{fmtVal2(Math.round(d.tire || 0))}</tspan>
+                            </text>
+                          );
+                        })()) : d.val > 0 && (rotL ? (() => {
                           const cx2 = x + w / 2;
                           const topY2 = pY2(journalGraphMode === "offert" ? Math.max(d.val, d.tire || 0) : d.val) - 16;
                           return <text transform={`translate(${cx2},${topY2}) rotate(-90)`} textAnchor="middle" dominantBaseline="middle" fontSize={8} fill={dark ? "#f48fb1" : "#c2185b"} fontWeight="bold">{fmtVal2(Math.round(d.val))}</text>;
